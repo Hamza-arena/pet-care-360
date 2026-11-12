@@ -9,8 +9,8 @@
 | **Phase 3: Business Logic** | DONE | 38/38 | 2026-11-13 | Numeric(12,2), race-safe counters, FEFO dispense, double-booking prevention |
 | **Phase 4: Product Completeness** | DONE | 46/46 | 2026-11-13 | Edit screens, PDF generation, CSV reports, file uploads |
 | **Phase 5: Background Jobs** | DONE | 54/54 | 2026-11-13 | Notification service abstraction, retry engine, automated reminders, low-stock alerts, CLI jobs |
-| **Phase 6: Quality & Ops** | IN-PROGRESS | - | 2026-11-13 | 80%+ coverage, GitHub Actions CI, Docker, /healthz, N+1 query optimization |
-| **Phase 7: SaaS Layer** | TODO | - | - | Clinic signup, plans, subscription tracking, super-admin panel |
+| **Phase 6: Quality & Ops** | DONE | 61/61 | 2026-11-13 | 80% coverage, GitHub Actions CI, Docker, /healthz, N+1 query elimination |
+| **Phase 7: SaaS Layer** | IN-PROGRESS | - | 2026-11-13 | Clinic self-signup, plans & limits, super-admin panel, subscription tracking |
 
 ---
 
@@ -91,9 +91,23 @@
 
 ---
 
-## Phase 6 - Quality & Operations Checklist (In Progress)
-- [ ] Implement production health check endpoint at `/healthz` (probing database connectivity and system status).
-- [ ] Add Dockerfile and `docker-compose.yml` for unified local/production deployments.
-- [ ] Setup GitHub Actions CI workflow (`.github/workflows/ci.yml`) for automated linting, test suite execution, and migration validation.
-- [ ] Optimize database queries and eliminate N+1 bottlenecks on high-traffic endpoints (dashboard, reports, inventory).
-- [ ] Increase test coverage across remaining routes to achieve 80%+ coverage target.
+## Phase 6 - Quality & Operations Checklist (Completed)
+- [x] Implement production health check endpoint at `/healthz` (probing database connectivity and system status, returning 200/503).
+- [x] Add production-grade multi-stage `Dockerfile` (with security non-root appuser, healthcheck, gunicorn) and `docker-compose.yml` (app, PostgreSQL db, background worker).
+- [x] Setup GitHub Actions CI workflow (`.github/workflows/ci.yml`) for automated ruff linting, test suite execution with coverage, and Alembic migration upgrade/downgrade validation.
+- [x] Add database backup utility in `scripts/backup_db.py` and operations guide in `docs/operations.md`.
+- [x] Fix N+1 query loops on clinical dashboard:
+  - Aggregated low stock medicines in single SQL subquery joining medicine batches.
+  - Aggregated payment revenue via database engine `func.sum()`.
+  - Added eager loading (`joinedload`) on appointments and medical records for pet, doctor, species, queue token.
+  - Added query listener test asserting bounded queries (<= 15 total).
+- [x] Achieved 80% total application test coverage with 61/61 automated tests passing green.
+
+---
+
+## Phase 7 - SaaS / Selling Layer Checklist (In Progress)
+- [ ] Implement clinic self-signup flow (`/register-clinic`) with 14-day trial initialization.
+- [ ] Define subscription plans (`Starter`, `Professional`, `Enterprise`) with feature flags and quota limits (max pets, max users).
+- [ ] Enforce subscription status middleware / helper (lock access if trial or subscription is expired/suspended).
+- [ ] Implement Super-Admin platform dashboard for tenant lifecycle management (listing clinics, activating/suspending subscriptions).
+- [ ] Write end-to-end integration test suite verifying self-signup, plan limit enforcement, account lockout, and super-admin controls in `tests/test_phase7_saas_layer.py`.

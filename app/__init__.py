@@ -1,7 +1,7 @@
 import os
 from datetime import UTC, datetime
 
-from flask import Flask, render_template
+from flask import Flask, jsonify, render_template
 
 from app import models  # noqa: F401
 from app.commands import register_commands
@@ -97,6 +97,39 @@ def create_app(config_name=None):
             'current_clinic': clinic,
             'currency': (clinic.currency if clinic and getattr(clinic, 'currency', None) else 'PKR'),
         }
+
+    # Sentry error monitoring integration (if DSN provided in environment)
+    sentry_dsn = os.environ.get('SENTRY_DSN')
+    if sentry_dsn:
+        try:
+            import sentry_sdk
+            from sentry_sdk.integrations.flask import FlaskIntegration
+            sentry_sdk.init(
+                dsn=sentry_dsn,
+                integrations=[FlaskIntegration()],
+                traces_sample_rate=0.2,
+            )
+        except ImportError:
+            pass
+
+    # Public Health Endpoint for load balancers and orchestrators
+    @app.route('/healthz')
+    def health_check():
+        """Comprehensive health check endpoint probing database connectivity."""
+        try:
+            db.session.execute(db.text('SELECT 1'))
+            return jsonify({
+                'status': 'healthy',
+                'database': 'connected',
+                'timestamp': datetime.now(UTC).isoformat(),
+            }), 200
+        except Exception as e:  # noqa: BLE001
+            return jsonify({
+                'status': 'unhealthy',
+                'database': 'error',
+                'error': str(e),
+                'timestamp': datetime.now(UTC).isoformat(),
+            }), 503
 
     # Template Currency Filter
     @app.template_filter('currency')

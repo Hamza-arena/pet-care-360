@@ -1,0 +1,74 @@
+name: PetCare 360 CI
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  test:
+    name: Lint, Test & Migration Validation
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: petcare_user
+          POSTGRES_PASSWORD: petcare_pass
+          POSTGRES_DB: petcare_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov ruff
+
+      - name: Lint with Ruff
+        run: |
+          ruff check app tests
+
+      - name: Validate Alembic Migrations
+        env:
+          DATABASE_URL: postgresql://petcare_user:petcare_pass@localhost:5432/petcare_test_db
+          SECRET_KEY: ci-temporary-secret-key-32charsmin!
+          FLASK_ENV: testing
+        run: |
+          flask db upgrade
+          flask db downgrade base
+          flask db upgrade head
+
+      - name: Run Test Suite with Coverage
+        env:
+          DATABASE_URL: sqlite:///:memory:
+          SECRET_KEY: ci-temporary-secret-key-32charsmin!
+          FLASK_ENV: testing
+        run: |
+          pytest -v --cov=app --cov-report=term-missing --cov-report=xml
+
+      - name: Verify Health Endpoint
+        env:
+          DATABASE_URL: sqlite:///:memory:
+          SECRET_KEY: ci-temporary-secret-key-32charsmin!
+          FLASK_ENV: testing
+        run: |
+          python -c "from app import create_app; from app.config import TestingConfig; app = create_app(TestingConfig); client = app.test_client(); r = client.get('/healthz'); assert r.status_code == 200, f'Expected 200, got {r.status_code}'"
+

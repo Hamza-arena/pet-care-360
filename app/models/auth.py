@@ -29,7 +29,9 @@ class User(UserMixin, TenantMixin, SoftDeleteMixin, TimestampMixin, db.Model):
 
     @property
     def roles(self):
-        return [ur.role for ur in self.user_roles.all()]
+        if not hasattr(self, '_cached_roles') or self._cached_roles is None:
+            self._cached_roles = [ur.role for ur in self.user_roles.all()]
+        return self._cached_roles
 
     def get_id(self):
         return str(self.id)
