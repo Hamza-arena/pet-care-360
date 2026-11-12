@@ -32,3 +32,8 @@ instance/
 .DS_Store
 Thumbs.db
 
+# User Uploads
+app/static/uploads/
+!app/static/uploads/.gitkeep
+
+

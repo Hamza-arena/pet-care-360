@@ -48,6 +48,7 @@ class Pet(SoftDeleteMixin, TimestampMixin, db.Model):
     microchip_number = db.Column(db.String(50), unique=True)
     is_neutered = db.Column(db.Boolean, default=False)
     insurance_number = db.Column(db.String(50))
+    photo_filename = db.Column(db.String(255))
     notes = db.Column(db.Text)
 
     owner = db.relationship('Owner', back_populates='pets')

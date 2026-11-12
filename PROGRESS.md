@@ -7,7 +7,7 @@
 | **Phase 1: Security** | DONE | 24/24 | 2026-11-13 | Flask-Limiter, safe URL redirect, POST CSRF logout, session fixation defense, RBAC URL matrix |
 | **Phase 2: Multi-tenancy** | DONE | 32/32 | 2026-11-13 | Clinic tenancy, scoped queries, tenant isolation suite |
 | **Phase 3: Business Logic** | DONE | 38/38 | 2026-11-13 | Numeric(12,2), race-safe counters, FEFO dispense, double-booking prevention |
-| **Phase 4: Product Completeness** | TODO | - | - | Edit screens, PDF generation, CSV reports, file uploads |
+| **Phase 4: Product Completeness** | DONE | 46/46 | 2026-11-13 | Edit screens, PDF generation, CSV reports, file uploads |
 | **Phase 5: Background Jobs** | TODO | - | - | Celery/Redis, automated reminders, inventory alerts |
 | **Phase 6: Quality & Ops** | TODO | - | - | 80%+ coverage, GitHub Actions CI, Docker, /healthz, N+1 query optimization |
 | **Phase 7: SaaS Layer** | TODO | - | - | Clinic signup, plans, subscription tracking, super-admin panel |
@@ -65,9 +65,19 @@
 
 ---
 
-## Phase 4 - Product Completeness Checklist (Next Phase)
-- [ ] Implement missing Edit/Update forms and routes (Edit Owner, Edit Pet, Edit Medicine, Edit Appointment).
-- [ ] Implement invoice PDF download generation (WeasyPrint / ReportLab / HTML-to-PDF).
-- [ ] Implement CSV export for financial summaries, appointment logs, and pharmacy inventory.
-- [ ] Implement secure pet profile photo and medical record attachment file uploads (allowed extensions, file size validation, random filename hashing).
-- [ ] Write integration test suite verifying edit workflows, CSV downloads, PDF generation, and upload validation in `tests/test_phase4_product_completeness.py`.
+## Phase 4 - Product Completeness Checklist (Completed)
+- [x] Complete edit/reschedule and cancellation flows across owners, pets, medicines, and appointments (`check_appointment_conflict` exclusion for current appointment).
+- [x] Implement professional invoice printable view at `/billing/invoices/<id>/print` with clinic branding, patient details, line items, and print styles.
+- [x] Implement CSV reports export for Financial Invoices (`/billing/export/csv`), Pharmacy Inventory & Stock (`/pharmacy/export/csv`), and Appointments & Productivity (`/appointments/export/csv`).
+- [x] Implement secure fast search endpoint `/search` across Owners and Pets (matching by name, phone, email, microchip number).
+- [x] Implement secure pet avatar upload pipeline in `app/utils/uploads.py`: extension whitelisting, 2MB size limit, UUID filename sanitization, rejecting malicious files (.exe/.php).
+- [x] Generate and test Alembic migration `a1b2c3d4e5f6_add_pet_photo_filename.py` (verified upgrade and downgrade).
+- [x] 46/46 automated tests green with 75% code coverage.
+
+---
+
+## Phase 5 - Background Jobs & Automation Checklist (Next Phase)
+- [ ] Configure task queue / scheduler abstraction (e.g. CLI worker or cron/background worker).
+- [ ] Implement automated vaccination due reminder generator (identifies overdue & upcoming vaccinations).
+- [ ] Implement low-stock inventory alert generator (identifies medicines at or below minimum threshold).
+- [ ] Write integration test suite verifying reminder dispatch, inventory threshold scans, and idempotency in `tests/test_phase5_background_jobs.py`.

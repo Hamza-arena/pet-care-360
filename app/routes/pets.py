@@ -1,4 +1,16 @@
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+import os
+
+from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_login import current_user, login_required
 
 from app.extensions import db
@@ -16,6 +28,7 @@ from app.models import (
 )
 from app.utils.decorators import staff_required
 from app.utils.tenant import assert_tenant_access, tenant_filter
+from app.utils.uploads import validate_and_save_upload
 
 pets_bp = Blueprint('pets', __name__, url_prefix='/pets')
 
@@ -205,4 +218,26 @@ def add_allergy(id):
 def get_breeds_by_species(species_id):
     breeds = Breed.query_active().filter_by(species_id=species_id).order_by(Breed.name).all()
     return jsonify([{'id': b.id, 'name': b.name} for b in breeds])
+
+
+@pets_bp.route('/<int:id>/photo', methods=['POST'])
+@login_required
+@staff_required
+def upload_photo(id):
+    pet = Pet.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(pet)
+
+    if 'photo' not in request.files:
+        abort(400, description="No file uploaded.")
+
+    file = request.files['photo']
+    upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'pets')
+    filename = validate_and_save_upload(file, upload_dir)
+
+    pet.photo_filename = filename
+    log_activity('UPDATE', 'Pet', pet.id, f"Uploaded new photo for pet {pet.name}")
+    db.session.commit()
+
+    flash(f"Photo updated for {pet.name}!", "success")
+    return redirect(url_for('pets.view', id=pet.id))
 

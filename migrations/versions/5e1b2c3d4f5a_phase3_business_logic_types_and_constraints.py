@@ -187,3 +187,4 @@ def downgrade():
         batch_op.drop_column('invoice_sequence')
         batch_op.drop_column('tax_rate')
         batch_op.drop_column('currency')
+

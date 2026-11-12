@@ -1,6 +1,6 @@
 from datetime import date
 
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request
 from flask_login import login_required
 
 from app.extensions import db
@@ -14,6 +14,7 @@ from app.models import (
     Payment,
     Pet,
 )
+from app.utils.tenant import tenant_filter
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -68,4 +69,38 @@ def index():
         unpaid_invoices_count=unpaid_invoices_count,
         today_date=today
     )
+
+
+@dashboard_bp.route('/search')
+@login_required
+def search():
+    q = request.args.get('q', '').strip()
+    if not q:
+        return render_template('dashboard/search.html', q=q, owners=[], pets=[])
+
+    search_filter = f"%{q}%"
+    owners = (
+        tenant_filter(Owner.query_active(), Owner)
+        .filter(
+            (Owner.first_name.ilike(search_filter))
+            | (Owner.last_name.ilike(search_filter))
+            | (Owner.phone.ilike(search_filter))
+            | (Owner.email.ilike(search_filter))
+        )
+        .limit(20)
+        .all()
+    )
+
+    pets = (
+        tenant_filter(Pet.query_active(), Pet)
+        .filter(
+            (Pet.name.ilike(search_filter))
+            | (Pet.microchip_number.ilike(search_filter))
+            | (Pet.color.ilike(search_filter))
+        )
+        .limit(20)
+        .all()
+    )
+
+    return render_template('dashboard/search.html', q=q, owners=owners, pets=pets)
 

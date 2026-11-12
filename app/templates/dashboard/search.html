@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Search Results: "{{ q }}" - PetCare 360{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-0">Search Results</h3>
+      <p class="text-muted small mb-0">Matching owners, pets, and records for "{{ q }}"</p>
+    </div>
+    <form action="{{ url_for('dashboard.search') }}" method="GET" class="d-flex">
+      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm me-2" placeholder="Search name, phone, microchip...">
+      <button type="submit" class="btn btn-sm btn-primary">Search</button>
+    </form>
+  </div>
+
+  <div class="row g-4">
+    <!-- Matching Owners -->
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h5 class="fw-bold mb-0"><i class="bi bi-people text-primary me-2"></i> Owners ({{ owners|length }})</h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="list-group list-group-flush">
+            {% for owner in owners %}
+            <a href="{{ url_for('owners.view', id=owner.id) }}" class="list-group-item list-group-item-action py-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-primary mb-1">{{ owner.full_name }}</h6>
+                  <div class="text-muted small">
+                    <i class="bi bi-telephone me-1"></i> {{ owner.phone }}
+                    {% if owner.email %} | <i class="bi bi-envelope me-1"></i> {{ owner.email }}{% endif %}
+                  </div>
+                </div>
+                <span class="badge bg-light text-dark border">{{ owner.pets.count() }} Pets</span>
+              </div>
+            </a>
+            {% else %}
+            <div class="p-4 text-center text-muted">No owners found matching "{{ q }}".</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Matching Pets -->
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h5 class="fw-bold mb-0"><i class="bi bi-heart-pulse text-danger me-2"></i> Pets ({{ pets|length }})</h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="list-group list-group-flush">
+            {% for pet in pets %}
+            <a href="{{ url_for('pets.view', id=pet.id) }}" class="list-group-item list-group-item-action py-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">{{ pet.name }} <span class="badge bg-secondary ms-1">{{ pet.species.name }}</span></h6>
+                  <div class="text-muted small">
+                    Owner: <strong>{{ pet.owner.full_name }}</strong>
+                    {% if pet.microchip_number %} | Microchip: <span class="font-monospace">{{ pet.microchip_number }}</span>{% endif %}
+                  </div>
+                </div>
+                <i class="bi bi-chevron-right text-muted"></i>
+              </div>
+            </a>
+            {% else %}
+            <div class="p-4 text-center text-muted">No pets found matching "{{ q }}".</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

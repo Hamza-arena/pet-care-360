@@ -1,7 +1,17 @@
+import csv
+import io
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    Response,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_login import current_user, login_required
 
 from app.extensions import db
@@ -174,6 +184,61 @@ def add_payment(id):
         flash(f'Payment of {currency} {pay_amount:.2f} recorded successfully!', 'success')
 
     return redirect(url_for('billing.view_invoice', id=invoice.id))
+
+
+@finance_bp.route('/invoices/<int:id>/print')
+@login_required
+def print_invoice(id):
+    invoice = Invoice.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(invoice)
+    return render_template('billing/invoice_print.html', invoice=invoice)
+
+
+@finance_bp.route('/export/csv')
+@login_required
+@staff_required
+def export_csv():
+    query = tenant_filter(Invoice.query_active(), Invoice)
+    invoices = query.order_by(Invoice.issue_date.desc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        'Invoice Number',
+        'Issue Date',
+        'Owner Name',
+        'Pet Name',
+        'Subtotal',
+        'Tax Amount',
+        'Discount Amount',
+        'Total Amount',
+        'Paid Amount',
+        'Balance Due',
+        'Status',
+    ])
+
+    for inv in invoices:
+        owner_name = inv.owner.full_name if inv.owner else 'N/A'
+        pet_name = inv.pet.name if inv.pet else 'N/A'
+        writer.writerow([
+            inv.invoice_number,
+            inv.issue_date.strftime('%Y-%m-%d %H:%M') if inv.issue_date else '',
+            owner_name,
+            pet_name,
+            f"{inv.subtotal:.2f}",
+            f"{inv.tax_amount:.2f}",
+            f"{inv.discount_amount:.2f}",
+            f"{inv.total_amount:.2f}",
+            f"{inv.paid_amount:.2f}",
+            f"{inv.balance_due:.2f}",
+            inv.status,
+        ])
+
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=invoices_report.csv'},
+    )
 
 
 @finance_bp.route('/invoices/<int:id>/delete', methods=['POST'])

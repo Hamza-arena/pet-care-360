@@ -1,6 +1,17 @@
+import csv
+import io
 from datetime import UTC, datetime
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    Response,
+    abort,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_login import current_user, login_required
 
 from app.extensions import db
@@ -94,6 +105,34 @@ def create():
         return redirect(url_for('pharmacy.view', id=med.id))
 
     return render_template('pharmacy/form.html', form=form, title='Add New Medication to Catalog')
+
+
+@pharmacy_bp.route('/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+@staff_required
+def edit(id):
+    medicine = Medicine.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(medicine)
+    form = MedicineForm(obj=medicine)
+
+    if form.validate_on_submit():
+        medicine.name = form.name.data.strip()
+        medicine.generic_name = form.generic_name.data.strip() if form.generic_name.data else None
+        medicine.category = form.category.data
+        medicine.description = form.description.data
+        medicine.manufacturer = form.manufacturer.data.strip() if form.manufacturer.data else None
+        medicine.unit = form.unit.data
+        medicine.strength = form.strength.data.strip() if form.strength.data else None
+        medicine.base_price = form.base_price.data
+        medicine.requires_prescription = form.requires_prescription.data
+        medicine.minimum_stock = form.minimum_stock.data
+
+        log_activity('UPDATE', 'Medicine', medicine.id, f'Updated medicine {medicine.name}')
+        db.session.commit()
+        flash(f'Medicine "{medicine.name}" updated successfully.', 'success')
+        return redirect(url_for('pharmacy.view', id=medicine.id))
+
+    return render_template('pharmacy/form.html', form=form, title=f'Edit Medicine: {medicine.name}', medicine=medicine)
 
 
 @pharmacy_bp.route('/<int:id>')
@@ -259,6 +298,55 @@ def dispense(id):
         flash(f'Successfully dispensed {dispense_qty} units of {medicine.name}. Stock updated.', 'success')
 
     return redirect(url_for('pharmacy.view', id=medicine.id))
+
+
+@pharmacy_bp.route('/export/csv')
+@login_required
+@staff_required
+def export_csv():
+    query = tenant_filter(Medicine.query_active(), Medicine)
+    medicines = query.order_by(Medicine.name.asc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        'Medicine Name',
+        'Generic Name',
+        'Category',
+        'Unit',
+        'Strength',
+        'Base Price',
+        'Current Stock',
+        'Minimum Stock',
+        'Stock Status',
+    ])
+
+    for med in medicines:
+        total_remaining = sum(b.quantity_remaining for b in med.batches if not b.is_deleted)
+        if total_remaining == 0:
+            status = 'Out of Stock'
+        elif total_remaining <= med.minimum_stock:
+            status = 'Low Stock'
+        else:
+            status = 'In Stock'
+
+        writer.writerow([
+            med.name,
+            med.generic_name or '',
+            med.category or '',
+            med.unit or '',
+            med.strength or '',
+            f"{med.base_price:.2f}",
+            total_remaining,
+            med.minimum_stock,
+            status,
+        ])
+
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=pharmacy_inventory_report.csv'},
+    )
 
 
 @pharmacy_bp.route('/movements')

@@ -1,6 +1,17 @@
+import csv
+import io
 from datetime import UTC, date, datetime
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    Response,
+    abort,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_login import current_user, login_required
 
 from app.extensions import db
@@ -145,6 +156,76 @@ def view(id):
     return render_template('appointments/view.html', appointment=appointment, status_form=status_form)
 
 
+@appointments_bp.route('/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+@staff_required
+def edit(id):
+    appointment = Appointment.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(appointment)
+    form = AppointmentForm(obj=appointment)
+
+    form.pet_id.choices = [(p.id, f"{p.name} ({p.species.name} - Owner: {p.owner.full_name})") for p in Pet.query_active().all()]
+    doctors = [u for u in User.query_active().all() if u.has_role('Doctor') or u.has_role('Admin')]
+    form.doctor_id.choices = [(d.id, f"Dr. {d.first_name} {d.last_name}") for d in doctors]
+    form.clinic_id.choices = [(c.id, c.name) for c in Clinic.query_active().all()]
+    form.appointment_type_id.choices = [(t.id, f"{t.name} (PKR {t.base_fee:.2f})") for t in AppointmentType.query_active().all()]
+
+    if form.validate_on_submit():
+        apt_type = db.session.get(AppointmentType, form.appointment_type_id.data)
+        duration = apt_type.duration_minutes if apt_type else 30
+        conflict = check_appointment_conflict(
+            doctor_id=form.doctor_id.data,
+            appointment_date=form.appointment_date.data,
+            appointment_time=form.appointment_time.data,
+            duration_minutes=duration,
+            exclude_appointment_id=appointment.id,
+        )
+        if conflict:
+            abort(400, description=conflict)
+
+        appointment.pet_id = form.pet_id.data
+        appointment.doctor_id = form.doctor_id.data
+        appointment.appointment_type_id = form.appointment_type_id.data
+        appointment.appointment_date = form.appointment_date.data
+        appointment.appointment_time = form.appointment_time.data
+        appointment.reason = form.reason.data
+        appointment.notes = form.notes.data
+
+        log_activity('UPDATE', 'Appointment', appointment.id, f'Rescheduled appointment #{appointment.id}')
+        db.session.commit()
+        flash(f'Appointment #{appointment.id} updated successfully.', 'success')
+        return redirect(url_for('appointments.view', id=appointment.id))
+
+    return render_template('appointments/form.html', form=form, title=f'Reschedule Appointment #{appointment.id}', appointment=appointment)
+
+
+@appointments_bp.route('/<int:id>/cancel', methods=['POST'])
+@login_required
+@staff_required
+def cancel(id):
+    appointment = Appointment.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(appointment)
+    old_stat = appointment.status
+    appointment.status = 'Cancelled'
+
+    if appointment.queue_token:
+        appointment.queue_token.status = 'Cancelled'
+
+    history = AppointmentStatusHistory(
+        appointment_id=appointment.id,
+        old_status=old_stat,
+        new_status='Cancelled',
+        changed_by=current_user.id,
+        notes=request.form.get('notes', 'Cancelled by staff'),
+    )
+    db.session.add(history)
+    log_activity('UPDATE', 'Appointment', appointment.id, f'Cancelled appointment #{appointment.id}')
+    db.session.commit()
+
+    flash(f'Appointment #{appointment.id} has been cancelled.', 'info')
+    return redirect(url_for('appointments.view', id=appointment.id))
+
+
 @appointments_bp.route('/<int:id>/status', methods=['POST'])
 @login_required
 @staff_required
@@ -184,6 +265,52 @@ def update_status(id):
             flash(f'Appointment status changed to {new_stat}.', 'success')
 
     return redirect(url_for('appointments.view', id=appointment.id))
+
+
+@appointments_bp.route('/export/csv')
+@login_required
+@staff_required
+def export_csv():
+    query = tenant_filter(Appointment.query_active(), Appointment)
+    appointments = query.order_by(Appointment.appointment_date.desc(), Appointment.appointment_time.desc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        'Appointment ID',
+        'Date',
+        'Time',
+        'Doctor Name',
+        'Pet Name',
+        'Owner Name',
+        'Visit Type',
+        'Status',
+        'Reason',
+    ])
+
+    for apt in appointments:
+        doc_name = f"Dr. {apt.doctor.first_name} {apt.doctor.last_name}" if apt.doctor else 'Unassigned'
+        pet_name = apt.pet.name if apt.pet else 'N/A'
+        owner_name = apt.pet.owner.full_name if apt.pet and apt.pet.owner else 'N/A'
+        type_name = apt.appointment_type.name if apt.appointment_type else 'General Visit'
+
+        writer.writerow([
+            apt.id,
+            apt.appointment_date.strftime('%Y-%m-%d') if apt.appointment_date else '',
+            apt.appointment_time.strftime('%H:%M') if apt.appointment_time else '',
+            doc_name,
+            pet_name,
+            owner_name,
+            type_name,
+            apt.status,
+            apt.reason or '',
+        ])
+
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=appointments_report.csv'},
+    )
 
 
 @appointments_bp.route('/<int:id>/delete', methods=['POST'])
