@@ -6,7 +6,7 @@ from flask import Flask, render_template
 from app import models  # noqa: F401
 from app.commands import register_commands
 from app.config import config_by_name
-from app.extensions import csrf, db, login_manager, migrate
+from app.extensions import csrf, db, limiter, login_manager, migrate
 
 
 def create_app(config_name=None):
@@ -30,6 +30,7 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
+    limiter.init_app(app)
 
     # Register custom CLI commands
     register_commands(app)
@@ -91,6 +92,10 @@ def create_app(config_name=None):
         }
 
     # Custom Error Handlers
+    @app.errorhandler(429)
+    def ratelimit_exceeded(e):
+        return render_template('errors/429.html', error=e), 429
+
     @app.errorhandler(403)
     def forbidden(e):
         return render_template('errors/403.html'), 403

@@ -4,7 +4,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | **Start-Up** | DONE | 2/2 | 2026-11-13 | Environment, pytest, pytest-cov, ruff, SQLite in-memory fixture, smoke tests |
 | **Phase 0: Foundation** | DONE | 12/12 | 2026-11-13 | Config split (Dev/Test/Prod), secret key check, Flask-Migrate, CLI commands, clean requirements |
-| **Phase 1: Security** | TODO | - | - | Rate limiting, safe redirect, CSRF logout, secure sessions, RBAC URL matrix |
+| **Phase 1: Security** | DONE | 24/24 | 2026-11-13 | Flask-Limiter, safe URL redirect, POST CSRF logout, session fixation defense, RBAC URL matrix |
 | **Phase 2: Multi-tenancy** | TODO | - | - | Clinic tenancy, scoped queries, tenant isolation suite |
 | **Phase 3: Business Logic** | TODO | - | - | Numeric(12,2), race-safe counters, FEFO dispense, double-booking prevention |
 | **Phase 4: Product Completeness** | TODO | - | - | Edit screens, PDF generation, CSV reports, file uploads |
@@ -30,10 +30,21 @@
 
 ---
 
-## Phase 1 - Security Checklist (Next Phase)
-- [ ] Install and configure `Flask-Limiter` (rate limiting on `/auth/login` - e.g. 5/min, 20/hour).
-- [ ] Safe `next` redirect validation helper using `urllib.parse.urlsplit` to prevent Open Redirect vulnerabilities.
-- [ ] Change `/auth/logout` from GET to POST with CSRF validation.
-- [ ] Configure secure cookies (`SESSION_COOKIE_HTTPONLY=True`, `SESSION_COOKIE_SAMESITE='Lax'`, `SESSION_COOKIE_SECURE=True` in Prod).
-- [ ] Session fixation defense: regenerate session on successful login.
-- [ ] Role-Based Access Control (RBAC) URL matrix enforcement: test matrix verifying unauthenticated/unauthorized access across all endpoints.
+## Phase 1 - Security Checklist (Completed)
+- [x] Install and configure `Flask-Limiter` (rate limiting on `/auth/login`: 5/min, 20/hour).
+- [x] Safe `next` redirect validation helper using `urllib.parse.urlsplit` in `app/utils/security.py` to prevent Open Redirect vulnerabilities.
+- [x] Change `/auth/logout` from GET to POST with CSRF validation.
+- [x] Update navbar and profile templates to submit logout via POST form with CSRF token.
+- [x] Configure secure cookies (`SESSION_COOKIE_HTTPONLY=True`, `SESSION_COOKIE_SAMESITE='Lax'`, `SESSION_COOKIE_SECURE=True` in Prod).
+- [x] Session fixation defense: regenerate/clear session on successful login before `login_user()`.
+- [x] Role-Based Access Control (RBAC) URL matrix enforcement test suite verifying Anonymous, Receptionist, Doctor, and Admin access.
+
+---
+
+## Phase 2 - Multi-tenancy Checklist (Next Phase)
+- [ ] Inspect all tenant-facing models for `clinic_id` foreign key.
+- [ ] Implement `TenantMixin` or verify `clinic_id` across tenant models (Owners, Pets, Appointments, Invoices, MedicalRecords, Prescriptions, LabOrders, etc.).
+- [ ] Add tenant context resolver (`current_user.clinic_id` or session clinic selection).
+- [ ] Scope queries by `clinic_id` automatically or through scoped query helpers.
+- [ ] Write Tenant Isolation test suite verifying Clinic A cannot read/mutate Clinic B's records.
+- [ ] Test migration upgrade and downgrade for tenant schema updates.

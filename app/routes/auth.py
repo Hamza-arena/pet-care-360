@@ -8,19 +8,22 @@ from flask import (
     redirect,
     render_template,
     request,
+    session,
     url_for,
 )
 from flask_login import current_user, login_required, login_user, logout_user
 
-from app.extensions import db
+from app.extensions import db, limiter
 from app.forms.auth import LoginForm
 from app.models.audit import log_activity
 from app.models.auth import User
+from app.utils.security import is_safe_url
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute; 20 per hour")
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard.index'))
@@ -35,12 +38,17 @@ def login():
 
             user.last_login = datetime.now(UTC)
             db.session.commit()
+
+            # Prevent session fixation attacks by clearing existing pre-auth session
+            session.clear()
             login_user(user, remember=form.remember_me.data)
             log_activity('LOGIN', 'User', user.id, f'User {user.username} logged in successfully.')
             db.session.commit()
 
             flash(f'Welcome back, {user.first_name or user.username}!', 'success')
             next_page = request.args.get('next')
+            if not is_safe_url(next_page):
+                next_page = None
             return redirect(next_page or url_for('dashboard.index'))
         else:
             flash('Invalid email or password. Please check your credentials.', 'danger')
@@ -48,12 +56,13 @@ def login():
     return render_template('auth/login.html', form=form)
 
 
-@auth_bp.route('/logout')
+@auth_bp.route('/logout', methods=['POST'])
 @login_required
 def logout():
     log_activity('LOGOUT', 'User', current_user.id, f'User {current_user.username} logged out.')
     db.session.commit()
     logout_user()
+    session.clear()
     flash('You have been signed out safely.', 'info')
     return redirect(url_for('auth.login'))
 

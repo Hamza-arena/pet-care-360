@@ -18,6 +18,16 @@ class BaseConfig:
     WTF_CSRF_ENABLED = True
     ITEMS_PER_PAGE = 20
 
+    # Rate Limiting Defaults
+    RATELIMIT_STORAGE_URI = os.environ.get('RATELIMIT_STORAGE_URI', 'memory://')
+    RATELIMIT_STRATEGY = 'fixed-window'
+    RATELIMIT_ENABLED = True
+
+    # Security Cookies
+    SESSION_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+
     @classmethod
     def init_app(cls, app):
         pass
@@ -37,6 +47,9 @@ class TestingConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI = normalize_db_url(os.environ.get('TEST_DATABASE_URL', 'sqlite:///:memory:'))
     WTF_CSRF_ENABLED = False
     ITEMS_PER_PAGE = 10
+    RATELIMIT_ENABLED = False
+    SESSION_COOKIE_SECURE = False
+    REMEMBER_COOKIE_SECURE = False
 
 
 class ProductionConfig(BaseConfig):
