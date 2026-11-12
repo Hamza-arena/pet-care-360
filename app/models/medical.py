@@ -1,10 +1,10 @@
 from datetime import UTC, datetime
 
 from app.extensions import db
-from app.models.base import SoftDeleteMixin, TimestampMixin
+from app.models.base import SoftDeleteMixin, TenantMixin, TimestampMixin
 
 
-class MedicalRecord(SoftDeleteMixin, TimestampMixin, db.Model):
+class MedicalRecord(TenantMixin, SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'medical_records'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -23,6 +23,7 @@ class MedicalRecord(SoftDeleteMixin, TimestampMixin, db.Model):
     follow_up_notes = db.Column(db.Text)
 
     # Relationships
+    clinic = db.relationship('Clinic', backref=db.backref('medical_records', lazy='dynamic'))
     pet = db.relationship('Pet', back_populates='medical_records')
     doctor = db.relationship('User', backref=db.backref('medical_records', lazy='dynamic'))
     appointment = db.relationship('Appointment', back_populates='medical_records')

@@ -44,3 +44,13 @@ class SoftDeleteMixin:
     @classmethod
     def count_deleted(cls):
         return cls.query_deleted().count()
+
+
+class TenantMixin:
+    clinic_id = db.Column(db.Integer, db.ForeignKey('clinics.id'), nullable=True, index=True)
+
+    @classmethod
+    def query_for_clinic(cls, clinic_id):
+        """Query active records belonging to a specific clinic."""
+        return cls.query_active().filter(cls.clinic_id == clinic_id)
+

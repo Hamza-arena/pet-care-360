@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from app.extensions import db
-from app.models.base import SoftDeleteMixin, TimestampMixin
+from app.models.base import SoftDeleteMixin, TenantMixin, TimestampMixin
 
 
 class LabTest(SoftDeleteMixin, TimestampMixin, db.Model):
@@ -26,7 +26,7 @@ class LabTest(SoftDeleteMixin, TimestampMixin, db.Model):
         return f'<LabTest {self.name} ({self.code})>'
 
 
-class LabOrder(SoftDeleteMixin, TimestampMixin, db.Model):
+class LabOrder(TenantMixin, SoftDeleteMixin, TimestampMixin, db.Model):
     """A laboratory order placed by a doctor for a pet."""
     __tablename__ = 'lab_orders'
 
@@ -40,6 +40,7 @@ class LabOrder(SoftDeleteMixin, TimestampMixin, db.Model):
     notes = db.Column(db.Text)
 
     # Relationships
+    clinic = db.relationship('Clinic', backref=db.backref('lab_orders', lazy='dynamic'))
     pet = db.relationship('Pet', backref=db.backref('lab_orders', lazy='dynamic'))
     doctor = db.relationship('User', backref=db.backref('lab_orders', lazy='dynamic'))
     items = db.relationship('LabOrderItem', backref='lab_order', lazy='dynamic', cascade='all, delete-orphan')

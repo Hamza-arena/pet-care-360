@@ -13,7 +13,7 @@ from app.models.auth import (
     User,
     UserRole,
 )
-from app.models.base import SoftDeleteMixin, TimestampMixin
+from app.models.base import SoftDeleteMixin, TenantMixin, TimestampMixin
 from app.models.clinic import Clinic, Department, DoctorSchedule, Room
 from app.models.finance import Invoice, InvoiceItem, Payment, PaymentMethod
 from app.models.laboratory import LabOrder, LabOrderItem, LabResult, LabTest, Surgery
@@ -76,6 +76,7 @@ __all__ = [
     'StaffProfile',
     'StockMovement',
     'Surgery',
+    'TenantMixin',
     'TimestampMixin',
     'Treatment',
     'User',

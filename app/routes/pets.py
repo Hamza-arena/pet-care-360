@@ -15,6 +15,7 @@ from app.models import (
     log_activity,
 )
 from app.utils.decorators import staff_required
+from app.utils.tenant import assert_tenant_access, tenant_filter
 
 pets_bp = Blueprint('pets', __name__, url_prefix='/pets')
 
@@ -26,7 +27,7 @@ def index():
     search_q = request.args.get('q', '').strip()
     species_id = request.args.get('species_id', type=int)
 
-    query = Pet.query_active()
+    query = tenant_filter(Pet.query_active(), Pet)
     if search_q:
         search_filter = f"%{search_q}%"
         query = query.filter(
@@ -101,6 +102,7 @@ def create():
 @login_required
 def view(id):
     pet = Pet.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(pet)
     allergy_form = AllergyForm()
 
     medical_records = MedicalRecord.query_active().filter_by(pet_id=pet.id).order_by(MedicalRecord.visit_date.desc()).all()
@@ -128,6 +130,7 @@ def view(id):
 @staff_required
 def edit(id):
     pet = Pet.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(pet)
     form = PetForm(obj=pet)
 
     form.owner_id.choices = [(o.id, f"{o.full_name} ({o.phone})") for o in Owner.query_active().order_by(Owner.first_name).all()]
@@ -166,6 +169,7 @@ def edit(id):
 @staff_required
 def delete(id):
     pet = Pet.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(pet)
     pet.soft_delete(user_id=current_user.id)
     log_activity('DELETE', 'Pet', pet.id, f'Soft-deleted pet {pet.name}')
     db.session.commit()

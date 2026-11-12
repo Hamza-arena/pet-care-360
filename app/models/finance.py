@@ -1,10 +1,10 @@
 from datetime import UTC, datetime
 
 from app.extensions import db
-from app.models.base import SoftDeleteMixin, TimestampMixin
+from app.models.base import SoftDeleteMixin, TenantMixin, TimestampMixin
 
 
-class Invoice(SoftDeleteMixin, TimestampMixin, db.Model):
+class Invoice(TenantMixin, SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'invoices'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -23,6 +23,7 @@ class Invoice(SoftDeleteMixin, TimestampMixin, db.Model):
     notes = db.Column(db.Text)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
 
+    clinic = db.relationship('Clinic', backref=db.backref('invoices', lazy='dynamic'))
     owner = db.relationship('Owner', backref=db.backref('invoices', lazy='dynamic'))
     pet = db.relationship('Pet', backref=db.backref('invoices', lazy='dynamic'))
     items = db.relationship('InvoiceItem', backref='invoice', lazy='dynamic',

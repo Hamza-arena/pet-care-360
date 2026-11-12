@@ -13,6 +13,7 @@ from app.models import (
     log_activity,
 )
 from app.utils.decorators import staff_required
+from app.utils.tenant import assert_tenant_access, get_current_tenant_id, tenant_filter
 
 pharmacy_bp = Blueprint('pharmacy', __name__, url_prefix='/pharmacy')
 
@@ -24,7 +25,7 @@ def index():
     search_q = request.args.get('q', '').strip()
     category_filter = request.args.get('category', '')
 
-    query = Medicine.query_active()
+    query = tenant_filter(Medicine.query_active(), Medicine)
     if search_q:
         search_filter = f"%{search_q}%"
         query = query.filter(
@@ -72,6 +73,7 @@ def create():
     form = MedicineForm()
     if form.validate_on_submit():
         med = Medicine(
+            clinic_id=get_current_tenant_id(),
             name=form.name.data.strip(),
             generic_name=form.generic_name.data.strip() if form.generic_name.data else None,
             category=form.category.data,
@@ -98,6 +100,7 @@ def create():
 @login_required
 def view(id):
     medicine = Medicine.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(medicine)
     active_batches = [b for b in medicine.batches if not b.is_deleted]
     total_qty = sum(b.quantity_remaining for b in active_batches)
 

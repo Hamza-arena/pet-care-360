@@ -15,6 +15,7 @@ from app.models import (
     log_activity,
 )
 from app.utils.decorators import staff_required
+from app.utils.tenant import assert_tenant_access, get_current_tenant_id, tenant_filter
 
 finance_bp = Blueprint('billing', __name__, url_prefix='/billing')
 
@@ -40,7 +41,7 @@ def index():
     page = request.args.get('page', 1, type=int)
     status_filter = request.args.get('status', '')
 
-    query = Invoice.query_active()
+    query = tenant_filter(Invoice.query_active(), Invoice)
     if status_filter:
         query = query.filter(Invoice.status == status_filter)
 
@@ -77,6 +78,7 @@ def create_invoice():
         inv_num = f"INV-{today_str}-{inv_count:04d}"
 
         invoice = Invoice(
+            clinic_id=get_current_tenant_id(),
             invoice_number=inv_num,
             owner_id=form.owner_id.data,
             pet_id=form.pet_id.data if form.pet_id.data and form.pet_id.data > 0 else None,
@@ -103,6 +105,7 @@ def create_invoice():
 @login_required
 def view_invoice(id):
     invoice = Invoice.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(invoice)
     item_form = InvoiceItemForm()
     payment_form = PaymentForm()
 
@@ -184,6 +187,7 @@ def add_payment(id):
 @staff_required
 def delete_invoice(id):
     invoice = Invoice.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(invoice)
     invoice.soft_delete(user_id=current_user.id)
     log_activity('DELETE', 'Invoice', invoice.id, f'Soft-deleted invoice {invoice.invoice_number}')
     db.session.commit()

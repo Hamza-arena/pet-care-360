@@ -5,7 +5,7 @@
 | **Start-Up** | DONE | 2/2 | 2026-11-13 | Environment, pytest, pytest-cov, ruff, SQLite in-memory fixture, smoke tests |
 | **Phase 0: Foundation** | DONE | 12/12 | 2026-11-13 | Config split (Dev/Test/Prod), secret key check, Flask-Migrate, CLI commands, clean requirements |
 | **Phase 1: Security** | DONE | 24/24 | 2026-11-13 | Flask-Limiter, safe URL redirect, POST CSRF logout, session fixation defense, RBAC URL matrix |
-| **Phase 2: Multi-tenancy** | TODO | - | - | Clinic tenancy, scoped queries, tenant isolation suite |
+| **Phase 2: Multi-tenancy** | DONE | 32/32 | 2026-11-13 | Clinic tenancy, scoped queries, tenant isolation suite |
 | **Phase 3: Business Logic** | TODO | - | - | Numeric(12,2), race-safe counters, FEFO dispense, double-booking prevention |
 | **Phase 4: Product Completeness** | TODO | - | - | Edit screens, PDF generation, CSV reports, file uploads |
 | **Phase 5: Background Jobs** | TODO | - | - | Celery/Redis, automated reminders, inventory alerts |
@@ -41,10 +41,21 @@
 
 ---
 
-## Phase 2 - Multi-tenancy Checklist (Next Phase)
-- [ ] Inspect all tenant-facing models for `clinic_id` foreign key.
-- [ ] Implement `TenantMixin` or verify `clinic_id` across tenant models (Owners, Pets, Appointments, Invoices, MedicalRecords, Prescriptions, LabOrders, etc.).
-- [ ] Add tenant context resolver (`current_user.clinic_id` or session clinic selection).
-- [ ] Scope queries by `clinic_id` automatically or through scoped query helpers.
-- [ ] Write Tenant Isolation test suite verifying Clinic A cannot read/mutate Clinic B's records.
-- [ ] Test migration upgrade and downgrade for tenant schema updates.
+## Phase 2 - Multi-tenancy Checklist (Completed)
+- [x] Implement `TenantMixin` in `app/models/base.py` and assign `clinic_id` foreign keys to User, Owner, Medicine, Invoice, LabOrder, MedicalRecord.
+- [x] Generate and test Alembic migration `0de89771a5af_add_multitenancy_clinic_id.py` with explicit batch constraint names for SQLite compatibility; verify both upgrade and downgrade.
+- [x] Implement tenant resolution helpers in `app/utils/tenant.py`: `get_current_tenant_id()`, `tenant_filter()`, and `assert_tenant_access()`.
+- [x] Protect routes across owners, pets, appointments, medical records, laboratory, pharmacy, and billing with strict tenant filtering and assertions.
+- [x] Create comprehensive Tenant Isolation test suite in `tests/test_phase2_multitenancy.py` (verifying cross-clinic 404s, list scoping, and superadmin global view).
+- [x] 32/32 tests green with 71% overall code coverage.
+
+---
+
+## Phase 3 - Business Logic Checklist (Next Phase)
+- [ ] Convert Float financial columns to `Numeric(12, 2)` (Invoice total, InvoiceItem unit_price/total, Payment amount, Medicine price, MedicineBatch purchase_price).
+- [ ] Set clinic currency configuration (PKR as default, replace hardcoded "$" symbols).
+- [ ] Implement race-safe invoice number generation (e.g., locking / `select_for_update()`).
+- [ ] Implement First-Expired, First-Out (FEFO) dispensing logic in pharmacy batches.
+- [ ] Implement appointment conflict validation (double-booking prevention for doctor and room).
+- [ ] Generate and verify database migration with upgrade and downgrade tests.
+- [ ] Write unit and integration tests for all business logic in `tests/test_phase3_business_logic.py`.

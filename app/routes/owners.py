@@ -5,6 +5,7 @@ from app.extensions import db
 from app.forms.owners import OwnerForm
 from app.models import Owner, OwnerAddress, log_activity
 from app.utils.decorators import staff_required
+from app.utils.tenant import assert_tenant_access, get_current_tenant_id, tenant_filter
 
 owners_bp = Blueprint('owners', __name__, url_prefix='/owners')
 
@@ -15,7 +16,7 @@ def index():
     page = request.args.get('page', 1, type=int)
     search_q = request.args.get('q', '').strip()
 
-    query = Owner.query_active()
+    query = tenant_filter(Owner.query_active(), Owner)
     if search_q:
         search_filter = f"%{search_q}%"
         query = query.filter(
@@ -36,6 +37,7 @@ def create():
     form = OwnerForm()
     if form.validate_on_submit():
         owner = Owner(
+            clinic_id=get_current_tenant_id(),
             first_name=form.first_name.data.strip(),
             last_name=form.last_name.data.strip(),
             email=form.email.data.strip().lower() if form.email.data else None,
@@ -73,6 +75,7 @@ def create():
 @login_required
 def view(id):
     owner = Owner.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(owner)
     active_pets = [p for p in owner.pets if not p.is_deleted]
     active_invoices = [inv for inv in owner.invoices if not inv.is_deleted]
     return render_template('owners/view.html', owner=owner, pets=active_pets, invoices=active_invoices)
@@ -83,6 +86,7 @@ def view(id):
 @staff_required
 def edit(id):
     owner = Owner.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(owner)
     form = OwnerForm(obj=owner)
 
     primary_addr = next((a for a in owner.addresses if a.is_primary and not a.is_deleted), None)
@@ -133,6 +137,7 @@ def edit(id):
 @staff_required
 def delete(id):
     owner = Owner.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(owner)
     owner.soft_delete(user_id=current_user.id)
     log_activity('DELETE', 'Owner', owner.id, f'Soft-deleted owner {owner.full_name}')
     db.session.commit()

@@ -4,10 +4,10 @@ from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
-from app.models.base import SoftDeleteMixin, TimestampMixin
+from app.models.base import SoftDeleteMixin, TenantMixin, TimestampMixin
 
 
-class User(UserMixin, SoftDeleteMixin, TimestampMixin, db.Model):
+class User(UserMixin, TenantMixin, SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -21,6 +21,7 @@ class User(UserMixin, SoftDeleteMixin, TimestampMixin, db.Model):
     last_login = db.Column(db.DateTime)
 
     # Relationships
+    clinic = db.relationship('Clinic', backref=db.backref('users', lazy='dynamic'))
     user_roles = db.relationship('UserRole', backref='user', lazy='dynamic',
                                  cascade='all, delete-orphan')
     staff_profile = db.relationship('StaffProfile', backref='user', uselist=False,

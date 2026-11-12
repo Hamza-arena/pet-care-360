@@ -16,6 +16,7 @@ from app.models import (
     log_activity,
 )
 from app.utils.decorators import staff_required
+from app.utils.tenant import assert_tenant_access, get_current_tenant_id, tenant_filter
 
 appointments_bp = Blueprint('appointments', __name__, url_prefix='/appointments')
 
@@ -28,7 +29,7 @@ def index():
     page = request.args.get('page', 1, type=int)
 
     today = date.today()
-    query = Appointment.query_active()
+    query = tenant_filter(Appointment.query_active(), Appointment)
 
     if filter_mode == 'today':
         query = query.filter(Appointment.appointment_date == today)
@@ -78,7 +79,7 @@ def create():
         appointment = Appointment(
             pet_id=form.pet_id.data,
             doctor_id=form.doctor_id.data,
-            clinic_id=form.clinic_id.data,
+            clinic_id=get_current_tenant_id() or form.clinic_id.data,
             appointment_type_id=form.appointment_type_id.data,
             appointment_date=form.appointment_date.data,
             appointment_time=form.appointment_time.data,
@@ -126,6 +127,7 @@ def create():
 @login_required
 def view(id):
     appointment = Appointment.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(appointment)
     status_form = StatusUpdateForm()
     status_form.new_status.data = appointment.status
     return render_template('appointments/view.html', appointment=appointment, status_form=status_form)
@@ -136,6 +138,7 @@ def view(id):
 @staff_required
 def update_status(id):
     appointment = Appointment.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(appointment)
     form = StatusUpdateForm()
     if form.validate_on_submit():
         old_stat = appointment.status
@@ -176,6 +179,7 @@ def update_status(id):
 @staff_required
 def delete(id):
     appointment = Appointment.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(appointment)
     appointment.soft_delete(user_id=current_user.id)
     log_activity('DELETE', 'Appointment', appointment.id, f'Soft-deleted appointment #{appointment.id}')
     db.session.commit()

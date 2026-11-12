@@ -18,6 +18,7 @@ from app.models import (
     log_activity,
 )
 from app.utils.decorators import doctor_required
+from app.utils.tenant import assert_tenant_access, get_current_tenant_id, tenant_filter
 
 medical_bp = Blueprint('medical', __name__, url_prefix='/medical')
 
@@ -28,7 +29,7 @@ def index():
     page = request.args.get('page', 1, type=int)
     search_q = request.args.get('q', '').strip()
 
-    query = MedicalRecord.query_active()
+    query = tenant_filter(MedicalRecord.query_active(), MedicalRecord)
     if search_q:
         search_filter = f"%{search_q}%"
         query = query.join(Pet).filter(
@@ -60,6 +61,7 @@ def create():
 
     if form.validate_on_submit():
         record = MedicalRecord(
+            clinic_id=get_current_tenant_id(),
             pet_id=pet.id,
             appointment_id=appointment_id,
             doctor_id=current_user.id,
@@ -119,6 +121,7 @@ def create():
 @login_required
 def view(id):
     record = MedicalRecord.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(record)
     rx_form = PrescriptionItemForm()
     
     # Populate prescription medicines dropdown
@@ -141,6 +144,7 @@ def view(id):
 @doctor_required
 def add_prescription_item(id):
     record = MedicalRecord.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(record)
     form = PrescriptionItemForm()
     medicines = Medicine.query_active().all()
     form.medicine_id.choices = [(m.id, m.name) for m in medicines]
@@ -179,6 +183,7 @@ def add_prescription_item(id):
 @doctor_required
 def delete(id):
     record = MedicalRecord.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(record)
     record.soft_delete(user_id=current_user.id)
     log_activity('DELETE', 'MedicalRecord', record.id, f'Soft-deleted medical record #{record.id}')
     db.session.commit()

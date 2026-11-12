@@ -39,7 +39,10 @@ def create_app(config_name=None):
     @login_manager.user_loader
     def load_user(user_id):
         from app.models.auth import User
-        return db.session.get(User, int(user_id))
+        try:
+            return db.session.get(User, int(user_id))
+        except (ValueError, TypeError):
+            return None
 
     # Register Blueprints
     from app.routes.admin import admin_bp
@@ -72,6 +75,7 @@ def create_app(config_name=None):
         from flask_login import current_user
 
         from app.models import Appointment, Invoice, Medicine, Owner, Pet
+        from app.utils.tenant import get_current_clinic
 
         deleted_total = 0
         if current_user.is_authenticated and current_user.has_role('Admin'):
@@ -88,7 +92,8 @@ def create_app(config_name=None):
 
         return {
             'now': datetime.now(UTC),
-            'recycle_bin_count': deleted_total
+            'recycle_bin_count': deleted_total,
+            'current_clinic': get_current_clinic()
         }
 
     # Custom Error Handlers

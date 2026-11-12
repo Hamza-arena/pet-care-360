@@ -1,8 +1,8 @@
 from app.extensions import db
-from app.models.base import SoftDeleteMixin, TimestampMixin
+from app.models.base import SoftDeleteMixin, TenantMixin, TimestampMixin
 
 
-class Owner(SoftDeleteMixin, TimestampMixin, db.Model):
+class Owner(TenantMixin, SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'owners'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -16,6 +16,7 @@ class Owner(SoftDeleteMixin, TimestampMixin, db.Model):
     notes = db.Column(db.Text)
     registered_by = db.Column(db.Integer, db.ForeignKey('users.id'))
 
+    clinic = db.relationship('Clinic', backref=db.backref('owners', lazy='dynamic'))
     addresses = db.relationship('OwnerAddress', back_populates='owner', lazy='dynamic')
     contacts = db.relationship('OwnerContact', back_populates='owner', lazy='dynamic')
     pets = db.relationship('Pet', back_populates='owner', lazy='dynamic')

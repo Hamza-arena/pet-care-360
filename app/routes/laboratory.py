@@ -17,6 +17,7 @@ from app.models import (
     log_activity,
 )
 from app.utils.decorators import doctor_required, staff_required
+from app.utils.tenant import assert_tenant_access, get_current_tenant_id, tenant_filter
 
 laboratory_bp = Blueprint('laboratory', __name__, url_prefix='/lab')
 
@@ -27,7 +28,7 @@ def index():
     page = request.args.get('page', 1, type=int)
     status_filter = request.args.get('status', '')
 
-    query = LabOrder.query_active()
+    query = tenant_filter(LabOrder.query_active(), LabOrder)
     if status_filter:
         query = query.filter(LabOrder.status == status_filter)
 
@@ -51,6 +52,7 @@ def create_order():
 
     if form.validate_on_submit():
         order = LabOrder(
+            clinic_id=get_current_tenant_id(),
             pet_id=form.pet_id.data,
             doctor_id=form.doctor_id.data,
             priority=form.priority.data,
@@ -81,6 +83,7 @@ def create_order():
 @login_required
 def view_order(id):
     order = LabOrder.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(order)
     result_form = LabResultForm()
     return render_template('laboratory/view_order.html', order=order, result_form=result_form)
 

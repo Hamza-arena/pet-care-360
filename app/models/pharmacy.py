@@ -1,10 +1,10 @@
 from datetime import UTC, date, datetime
 
 from app.extensions import db
-from app.models.base import SoftDeleteMixin, TimestampMixin
+from app.models.base import SoftDeleteMixin, TenantMixin, TimestampMixin
 
 
-class Medicine(SoftDeleteMixin, TimestampMixin, db.Model):
+class Medicine(TenantMixin, SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'medicines'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -20,6 +20,7 @@ class Medicine(SoftDeleteMixin, TimestampMixin, db.Model):
     minimum_stock = db.Column(db.Integer, default=10)
 
     # Relationships
+    clinic = db.relationship('Clinic', backref=db.backref('medicines', lazy='dynamic'))
     batches = db.relationship('MedicineBatch', backref='medicine', lazy='dynamic')
 
     def __repr__(self):
