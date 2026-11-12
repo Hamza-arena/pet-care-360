@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Platform Clinics Management - SuperAdmin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1">SuperAdmin Platform Control</h3>
+      <p class="text-muted mb-0">Total Clinics Registered: <strong>{{ clinics|length }}</strong></p>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <th>Clinic Name</th>
+              <th>City / Contact</th>
+              <th>Plan</th>
+              <th>Status</th>
+              <th>Active Until</th>
+              <th>Quotas</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in clinics %}
+            <tr>
+              <td>#{{ c.id }}</td>
+              <td class="fw-bold">{{ c.name }}</td>
+              <td>{{ c.city }} &bull; {{ c.email }}</td>
+              <td><span class="badge bg-secondary">{{ c.subscription_plan }}</span></td>
+              <td>
+                <span class="badge bg-{% if c.subscription_status in ['active', 'trialing'] %}success{% else %}danger{% endif %} text-uppercase">
+                  {{ c.subscription_status }}
+                </span>
+              </td>
+              <td>
+                {% if c.subscription_status == 'trialing' and c.trial_ends_at %}
+                  Trial ends {{ c.trial_ends_at.strftime('%Y-%m-%d') }}
+                {% elif c.subscription_ends_at %}
+                  Paid until {{ c.subscription_ends_at.strftime('%Y-%m-%d') }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td>{{ c.max_pets }} pets / {{ c.max_users }} users</td>
+              <td class="text-end">
+                <form method="POST" action="{{ url_for('saas.superadmin_toggle_status', id=c.id) }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  {% if c.subscription_status == 'suspended' %}
+                    <input type="hidden" name="action" value="activate">
+                    <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                  {% else %}
+                    <input type="hidden" name="action" value="suspend">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Suspend</button>
+                  {% endif %}
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

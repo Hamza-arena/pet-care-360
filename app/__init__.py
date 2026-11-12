@@ -55,6 +55,7 @@ def create_app(config_name=None):
     from app.routes.owners import owners_bp
     from app.routes.pets import pets_bp
     from app.routes.pharmacy import pharmacy_bp
+    from app.routes.saas import saas_bp
     from app.routes.vaccination import vaccination_bp
 
     app.register_blueprint(auth_bp)
@@ -68,6 +69,7 @@ def create_app(config_name=None):
     app.register_blueprint(finance_bp)
     app.register_blueprint(vaccination_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(saas_bp)
 
     # Global Template Context Processor
     @app.context_processor
@@ -111,6 +113,38 @@ def create_app(config_name=None):
             )
         except ImportError:
             pass
+
+    # Tenant Subscription Access Guard (Phase 7 SaaS)
+    @app.before_request
+    def check_tenant_subscription():
+        from flask import flash, jsonify, redirect, request, url_for
+        from flask_login import current_user
+
+        from app.utils.tenant import get_current_clinic
+
+        if not current_user.is_authenticated:
+            return None
+
+        endpoint = request.endpoint or ''
+        if endpoint.startswith(('auth.', 'saas.', 'static')) or endpoint == 'health_check':
+            return None
+
+        if current_user.has_role('SuperAdmin'):
+            return None
+
+        clinic = get_current_clinic()
+        if clinic and not clinic.is_subscription_active():
+            is_json = request.is_json or 'application/json' in request.headers.get('Accept', '')
+            if is_json:
+                return jsonify({
+                    'error': 'Subscription Expired',
+                    'message': 'Your clinic subscription has expired or is suspended.',
+                    'status': clinic.subscription_status,
+                }), 402
+            flash('Your clinic subscription or trial has expired. Please upgrade or renew your plan to continue.', 'warning')
+            return redirect(url_for('saas.subscription_status'))
+
+        return None
 
     # Public Health Endpoint for load balancers and orchestrators
     @app.route('/healthz')

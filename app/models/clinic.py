@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from app.extensions import db
 from app.models.base import SoftDeleteMixin, TimestampMixin
 
@@ -19,8 +21,44 @@ class Clinic(SoftDeleteMixin, TimestampMixin, db.Model):
     tax_rate = db.Column(db.Numeric(5, 2), default=16.00, nullable=False)
     invoice_sequence = db.Column(db.Integer, default=0, nullable=False)
 
+    # SaaS Subscription & Quotas
+    subscription_plan = db.Column(db.String(30), default='Trial', nullable=False)
+    subscription_status = db.Column(db.String(30), default='trialing', nullable=False)  # trialing, active, expired, suspended
+    trial_ends_at = db.Column(db.DateTime, nullable=True)
+    subscription_ends_at = db.Column(db.DateTime, nullable=True)
+    max_pets = db.Column(db.Integer, default=100, nullable=False)
+    max_users = db.Column(db.Integer, default=3, nullable=False)
+
     departments = db.relationship('Department', backref='clinic', lazy='dynamic')
     rooms = db.relationship('Room', backref='clinic', lazy='dynamic')
+
+    def is_subscription_active(self) -> bool:
+        """Verify whether this clinic has valid active access (either within trial or active paid plan)."""
+        if not self.is_active or self.subscription_status in ('suspended', 'cancelled'):
+            return False
+
+        now = datetime.now(UTC)
+        if self.subscription_status == 'trialing':
+            if self.trial_ends_at is None:
+                return True
+            trial_end = self.trial_ends_at if self.trial_ends_at.tzinfo else self.trial_ends_at.replace(tzinfo=UTC)
+            return now <= trial_end
+
+        if self.subscription_status == 'active':
+            if self.subscription_ends_at is None:
+                return True
+            sub_end = self.subscription_ends_at if self.subscription_ends_at.tzinfo else self.subscription_ends_at.replace(tzinfo=UTC)
+            return now <= sub_end
+
+        return False
+
+    def can_add_pet(self, current_pet_count: int) -> bool:
+        """Check if clinic has remaining pet quota."""
+        return current_pet_count < self.max_pets
+
+    def can_add_user(self, current_user_count: int) -> bool:
+        """Check if clinic has remaining staff user quota."""
+        return current_user_count < self.max_users
 
     def __repr__(self):
         return f'<Clinic {self.name}>'

@@ -27,7 +27,8 @@ from app.models import (
     log_activity,
 )
 from app.utils.decorators import staff_required
-from app.utils.tenant import assert_tenant_access, tenant_filter
+from app.utils.subscription import check_pet_quota
+from app.utils.tenant import assert_tenant_access, get_current_clinic, tenant_filter
 from app.utils.uploads import validate_and_save_upload
 
 pets_bp = Blueprint('pets', __name__, url_prefix='/pets')
@@ -84,6 +85,10 @@ def create():
         form.breed_id.choices = [(0, 'Mixed / Unknown Breed')]
 
     if form.validate_on_submit():
+        clinic = get_current_clinic()
+        current_count = tenant_filter(Pet.query_active(), Pet).count()
+        check_pet_quota(clinic, current_count)
+
         breed_val = form.breed_id.data if form.breed_id.data and form.breed_id.data > 0 else None
         pet = Pet(
             name=form.name.data.strip(),

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Pricing & Plans - PetCare 360{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="text-center mb-5">
+    <h1 class="fw-bold">Simple, Transparent Pricing</h1>
+    <p class="text-muted lead">Choose the plan that fits your veterinary practice. All plans include a 14-day free trial.</p>
+  </div>
+
+  <div class="row g-4 justify-content-center">
+    {% for plan_name, spec in plans.items() %}
+    <div class="col-md-4">
+      <div class="card h-100 shadow-sm border-{% if plan_name == 'Professional' %}primary border-2{% else %}light{% endif %}">
+        {% if plan_name == 'Professional' %}
+        <div class="card-header bg-primary text-white text-center py-2 fw-semibold">
+          Most Popular
+        </div>
+        {% endif %}
+        <div class="card-body text-center p-4">
+          <h3 class="fw-bold">{{ plan_name }}</h3>
+          <div class="my-4">
+            <span class="fs-1 fw-bold text-primary">PKR {{ "{:,}".format(spec.price_pkr) }}</span>
+            <span class="text-muted">/ month</span>
+          </div>
+          <ul class="list-unstyled text-start my-4">
+            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Up to <strong>{{ "{:,}".format(spec.max_pets) }}</strong> Patient Pets</li>
+            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Up to <strong>{{ spec.max_users }}</strong> Staff Accounts</li>
+            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Automated Invoicing & Reminders</li>
+            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Multi-user RBAC & Audit Trails</li>
+            <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Daily Database Backups</li>
+          </ul>
+          <a href="{{ url_for('saas.register_clinic') }}" class="btn btn-{% if plan_name == 'Professional' %}primary{% else %}outline-primary{% endif %} w-100 py-2">
+            Start 14-Day Free Trial
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+

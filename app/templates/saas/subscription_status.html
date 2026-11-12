@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Subscription Status - PetCare 360{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1">Subscription & Limits</h3>
+      <p class="text-muted mb-0">Clinic: <strong>{{ clinic.name }}</strong></p>
+    </div>
+    <a href="{{ url_for('saas.export_clinic_data') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-download me-1"></i> Export Clinic Data (JSON)
+    </a>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+          <span class="text-muted small text-uppercase">Plan Tier</span>
+          <h2 class="fw-bold text-primary mt-1">{{ clinic.subscription_plan }}</h2>
+          <span class="badge bg-{% if clinic.subscription_status in ['active', 'trialing'] %}success{% else %}danger{% endif %} text-uppercase">
+            {{ clinic.subscription_status }}
+          </span>
+          {% if clinic.subscription_status == 'trialing' %}
+          <div class="mt-2 small text-muted">{{ days_left }} days remaining in trial</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+          <span class="text-muted small text-uppercase">Pet Patients Quota</span>
+          <h2 class="fw-bold mt-1">{{ pet_count }} / {{ clinic.max_pets }}</h2>
+          <div class="progress mt-2" style="height: 6px;">
+            <div class="progress-bar bg-info" style="width: {{ (pet_count / clinic.max_pets * 100)|int }}%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+          <span class="text-muted small text-uppercase">Staff Accounts Quota</span>
+          <h2 class="fw-bold mt-1">{{ user_count }} / {{ clinic.max_users }}</h2>
+          <div class="progress mt-2" style="height: 6px;">
+            <div class="progress-bar bg-warning" style="width: {{ (user_count / clinic.max_users * 100)|int }}%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3">
+      <h5 class="fw-bold mb-0">Upgrade or Renew Plan</h5>
+    </div>
+    <div class="card-body p-4">
+      <form method="POST" action="{{ url_for('saas.activate_subscription') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-3 align-items-center">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Select Tier</label>
+            <select name="plan_name" class="form-select">
+              <option value="Professional" {% if clinic.subscription_plan == 'Professional' %}selected{% endif %}>Professional (1,000 Pets, 10 Users) - PKR 15,000 / mo</option>
+              <option value="Enterprise" {% if clinic.subscription_plan == 'Enterprise' %}selected{% endif %}>Enterprise (Unlimited Pets, 100 Users) - PKR 35,000 / mo</option>
+              <option value="Starter" {% if clinic.subscription_plan == 'Starter' %}selected{% endif %}>Starter (100 Pets, 3 Users) - PKR 5,000 / mo</option>
+            </select>
+          </div>
+          <div class="col-md-6 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary px-4 py-2">
+              Activate Subscription &rarr;
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

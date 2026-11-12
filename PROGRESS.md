@@ -10,7 +10,7 @@
 | **Phase 4: Product Completeness** | DONE | 46/46 | 2026-11-13 | Edit screens, PDF generation, CSV reports, file uploads |
 | **Phase 5: Background Jobs** | DONE | 54/54 | 2026-11-13 | Notification service abstraction, retry engine, automated reminders, low-stock alerts, CLI jobs |
 | **Phase 6: Quality & Ops** | DONE | 61/61 | 2026-11-13 | 80% coverage, GitHub Actions CI, Docker, /healthz, N+1 query elimination |
-| **Phase 7: SaaS Layer** | IN-PROGRESS | - | 2026-11-13 | Clinic self-signup, plans & limits, super-admin panel, subscription tracking |
+| **Phase 7: SaaS Layer** | DONE | 69/69 | 2026-11-13 | Clinic self-signup, 14-day trial, plan quotas & limits, superadmin controls, data export |
 
 ---
 
@@ -105,9 +105,14 @@
 
 ---
 
-## Phase 7 - SaaS / Selling Layer Checklist (In Progress)
-- [ ] Implement clinic self-signup flow (`/register-clinic`) with 14-day trial initialization.
-- [ ] Define subscription plans (`Starter`, `Professional`, `Enterprise`) with feature flags and quota limits (max pets, max users).
-- [ ] Enforce subscription status middleware / helper (lock access if trial or subscription is expired/suspended).
-- [ ] Implement Super-Admin platform dashboard for tenant lifecycle management (listing clinics, activating/suspending subscriptions).
-- [ ] Write end-to-end integration test suite verifying self-signup, plan limit enforcement, account lockout, and super-admin controls in `tests/test_phase7_saas_layer.py`.
+## Phase 7 - SaaS / Selling Layer Checklist (Completed)
+- [x] Create Alembic migration `b2c3d4e5f6a7_phase7_saas_subscription_and_limits.py` adding subscription plans, statuses, trial dates, and quotas to `clinics` table (verified upgrade and downgrade).
+- [x] Implement self-service clinic onboarding wizard at `/register-clinic` with automatic 14-day trial initialization, tenant creation, and admin role provisioning.
+- [x] Implement subscription tiers (`Starter`, `Professional`, `Enterprise`) and quotas (`max_pets`, `max_users`).
+- [x] Enforce automated subscription guard (`before_request`) locking expired trials and suspended clinics with redirect to subscription status (or HTTP 402 for JSON requests).
+- [x] Enforce quota limits (`check_pet_quota`) preventing clinics from exceeding allowed patient pet count (HTTP 400).
+- [x] Implement tenant data export endpoint at `/subscription/export-data` ensuring 100% data ownership with strict tenant isolation.
+- [x] Implement SuperAdmin platform panel at `/superadmin/clinics` with tenant suspension and activation actions.
+- [x] Implement public pricing (`/pricing`), Terms of Service (`/terms`), and Privacy Policy (`/privacy`) pages.
+- [x] Write Phase 7 integration test suite in `tests/test_phase7_saas_layer.py` (8/8 tests passing).
+- [x] 69/69 total automated tests passing green with 80% application code coverage.

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Start Your 14-Day Free Trial - PetCare 360{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4 p-md-5">
+          <div class="text-center mb-4">
+            <h2 class="fw-bold">Create Clinic Account</h2>
+            <p class="text-muted">Get started with a full-featured 14-day trial. No credit card required.</p>
+          </div>
+
+          <form method="POST" action="{{ url_for('saas.register_clinic') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <h5 class="fw-semibold text-primary mb-3">Clinic Information</h5>
+            <div class="mb-3">
+              <label class="form-label">Clinic Name *</label>
+              <input type="text" name="clinic_name" class="form-control" placeholder="e.g. Lahore Veterinary Hospital" required>
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-md-6">
+                <label class="form-label">City</label>
+                <input type="text" name="city" class="form-control" placeholder="Lahore">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Phone</label>
+                <input type="text" name="phone" class="form-control" placeholder="03001234567">
+              </div>
+            </div>
+            <div class="mb-4">
+              <label class="form-label">Clinic Email</label>
+              <input type="email" name="clinic_email" class="form-control" placeholder="contact@lahorevet.com">
+            </div>
+
+            <h5 class="fw-semibold text-primary mb-3">Administrator Account</h5>
+            <div class="mb-3">
+              <label class="form-label">Admin Username *</label>
+              <input type="text" name="admin_username" class="form-control" placeholder="admin" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Admin Email *</label>
+              <input type="email" name="admin_email" class="form-control" placeholder="admin@lahorevet.com" required>
+            </div>
+            <div class="mb-4">
+              <label class="form-label">Password *</label>
+              <input type="password" name="admin_password" class="form-control" placeholder="Choose a strong password" required minlength="8">
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-2 fs-5">
+              Launch 14-Day Free Trial &rarr;
+            </button>
+            <div class="text-center mt-3 small text-muted">
+              By signing up, you agree to our <a href="{{ url_for('saas.terms') }}">Terms</a> and <a href="{{ url_for('saas.privacy') }}">Privacy Policy</a>.
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

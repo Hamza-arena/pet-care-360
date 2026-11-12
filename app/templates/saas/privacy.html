@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Privacy Policy - PetCare 360{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="card shadow-sm border-0 p-4 p-md-5">
+    <h1 class="fw-bold mb-4">Privacy Policy</h1>
+    <p class="text-muted">Last Updated: November 2026</p>
+    <hr>
+    <h5>1. Data We Collect</h5>
+    <p>PetCare 360 collects practice configuration data, patient medical records, owner contact details, and billing logs solely for the operation of your clinical practice.</p>
+    <h5>2. Tenant Data Security</h5>
+    <p>We enforce strict multi-tenant database partitioning. No clinic can access, view, or modify another clinic's confidential patient or financial records.</p>
+    <h5>3. Security & Backups</h5>
+    <p>All passwords are encrypted with PBKDF2/SHA-256. Automated encrypted database snapshots are taken daily to ensure clinical continuity.</p>
+  </div>
+</div>
+{% endblock %}
+
