@@ -65,7 +65,7 @@
             </tr>
             <tr>
               <th class="text-muted">Service Type</th>
-              <td>{{ appointment.appointment_type.name }} (${{ "%.2f"|format(appointment.appointment_type.base_fee) }})</td>
+              <td>{{ appointment.appointment_type.name }} ({{ currency }} {{ "%.2f"|format(appointment.appointment_type.base_fee) }})</td>
             </tr>
             <tr>
               <th class="text-muted">Scheduled Time</th>

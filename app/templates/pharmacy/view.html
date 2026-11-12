@@ -48,7 +48,7 @@
           </div>
           <div class="col-md-4">
             {{ batch_form.purchase_price.label(class="form-label small fw-semibold") }}
-            {{ batch_form.purchase_price(class="form-control", placeholder="Unit cost ($)") }}
+            {{ batch_form.purchase_price(class="form-control", placeholder="Unit cost (" ~ currency ~ ")") }}
           </div>
           <div class="col-md-4">
             {{ batch_form.selling_price.label(class="form-label small fw-semibold") }}
@@ -79,7 +79,7 @@
             <tr><th class="w-40 text-muted">Generic Name:</th><td>{{ medicine.generic_name or '—' }}</td></tr>
             <tr><th class="text-muted">Dosage Form:</th><td>{{ medicine.unit }}</td></tr>
             <tr><th class="text-muted">Strength:</th><td>{{ medicine.strength or 'Standard' }}</td></tr>
-            <tr><th class="text-muted">Unit Base Price:</th><td class="fw-bold text-success">${{ "%.2f"|format(medicine.base_price) }}</td></tr>
+            <tr><th class="text-muted">Unit Base Price:</th><td class="fw-bold text-success">{{ currency }} {{ "%.2f"|format(medicine.base_price) }}</td></tr>
             <tr><th class="text-muted">Manufacturer:</th><td>{{ medicine.manufacturer or '—' }}</td></tr>
             <tr><th class="text-muted">Prescription Req:</th><td>{{ 'Yes (Rx Required)' if medicine.requires_prescription else 'Over the Counter (OTC)' }}</td></tr>
             <tr><th class="text-muted">Min Threshold:</th><td>{{ medicine.minimum_stock }} units</td></tr>

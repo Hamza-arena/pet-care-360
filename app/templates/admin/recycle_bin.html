@@ -87,7 +87,7 @@
                   {% elif current_tab == 'appointments' %}
                     Appointment for {{ item.pet.name }} on {{ item.appointment_date.strftime('%b %d, %Y') }}
                   {% elif current_tab == 'invoices' %}
-                    {{ item.invoice_number }} (${{ "%.2f"|format(item.total_amount) }})
+                    {{ item.invoice_number }} ({{ currency }} {{ "%.2f"|format(item.total_amount) }})
                   {% elif current_tab == 'medicines' %}
                     {{ item.name }} ({{ item.category }})
                   {% elif current_tab == 'records' %}

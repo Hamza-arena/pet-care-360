@@ -6,7 +6,7 @@
 | **Phase 0: Foundation** | DONE | 12/12 | 2026-11-13 | Config split (Dev/Test/Prod), secret key check, Flask-Migrate, CLI commands, clean requirements |
 | **Phase 1: Security** | DONE | 24/24 | 2026-11-13 | Flask-Limiter, safe URL redirect, POST CSRF logout, session fixation defense, RBAC URL matrix |
 | **Phase 2: Multi-tenancy** | DONE | 32/32 | 2026-11-13 | Clinic tenancy, scoped queries, tenant isolation suite |
-| **Phase 3: Business Logic** | TODO | - | - | Numeric(12,2), race-safe counters, FEFO dispense, double-booking prevention |
+| **Phase 3: Business Logic** | DONE | 38/38 | 2026-11-13 | Numeric(12,2), race-safe counters, FEFO dispense, double-booking prevention |
 | **Phase 4: Product Completeness** | TODO | - | - | Edit screens, PDF generation, CSV reports, file uploads |
 | **Phase 5: Background Jobs** | TODO | - | - | Celery/Redis, automated reminders, inventory alerts |
 | **Phase 6: Quality & Ops** | TODO | - | - | 80%+ coverage, GitHub Actions CI, Docker, /healthz, N+1 query optimization |
@@ -51,11 +51,23 @@
 
 ---
 
-## Phase 3 - Business Logic Checklist (Next Phase)
-- [ ] Convert Float financial columns to `Numeric(12, 2)` (Invoice total, InvoiceItem unit_price/total, Payment amount, Medicine price, MedicineBatch purchase_price).
-- [ ] Set clinic currency configuration (PKR as default, replace hardcoded "$" symbols).
-- [ ] Implement race-safe invoice number generation (e.g., locking / `select_for_update()`).
-- [ ] Implement First-Expired, First-Out (FEFO) dispensing logic in pharmacy batches.
-- [ ] Implement appointment conflict validation (double-booking prevention for doctor and room).
-- [ ] Generate and verify database migration with upgrade and downgrade tests.
-- [ ] Write unit and integration tests for all business logic in `tests/test_phase3_business_logic.py`.
+## Phase 3 - Business Logic Checklist (Completed)
+- [x] Convert Float money columns to `Numeric(12, 2)` across `Invoice`, `InvoiceItem`, `Payment`, `Medicine`, `MedicineBatch`, `LabTest`, `AppointmentType`.
+- [x] Add `currency` (default PKR), `tax_rate` (16.00%), and `invoice_sequence` to `Clinic` model.
+- [x] Implement dynamic `currency` Jinja filter and context processor, replacing all hardcoded `$` signs with PKR/clinic setting across forms, routes, flash messages, and templates.
+- [x] Implement race-safe sequential invoice numbering using atomic SQL `UPDATE ... RETURNING` in `app/utils/finance.py`.
+- [x] Implement server-side penny-accurate Decimal calculations for subtotal, tax_amount, discount, total, and balance in `recalculate_invoice`.
+- [x] Implement First-Expired, First-Out (FEFO) automated dispensing and strict expiration date rejection (HTTP 400) in `app/routes/pharmacy.py`.
+- [x] Implement double-booking conflict validation for doctors and rooms in `app/utils/appointments.py` (HTTP 400 on overlap).
+- [x] Wrap clinical examination, diagnosis, and treatment creation in atomic database transaction in `app/routes/medical.py`.
+- [x] Create and verify Alembic migration `5e1b2c3d4f5a` (tested with upgrade and downgrade).
+- [x] 38/38 automated tests green with 73% code coverage.
+
+---
+
+## Phase 4 - Product Completeness Checklist (Next Phase)
+- [ ] Implement missing Edit/Update forms and routes (Edit Owner, Edit Pet, Edit Medicine, Edit Appointment).
+- [ ] Implement invoice PDF download generation (WeasyPrint / ReportLab / HTML-to-PDF).
+- [ ] Implement CSV export for financial summaries, appointment logs, and pharmacy inventory.
+- [ ] Implement secure pet profile photo and medical record attachment file uploads (allowed extensions, file size validation, random filename hashing).
+- [ ] Write integration test suite verifying edit workflows, CSV downloads, PDF generation, and upload validation in `tests/test_phase4_product_completeness.py`.

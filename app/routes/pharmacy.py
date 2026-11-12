@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app.extensions import db
@@ -167,46 +167,95 @@ def add_batch(id):
 @staff_required
 def dispense(id):
     medicine = Medicine.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(medicine)
     form = DispenseForm()
     available_batches = [b for b in medicine.batches if not b.is_deleted and b.quantity_remaining > 0]
-    form.batch_id.choices = [(b.id, b.batch_number) for b in available_batches]
+    form.batch_id.choices = [(0, '-- Auto FEFO (First-Expired, First-Out) --')] + [
+        (b.id, f"{b.batch_number} (Exp: {b.expiry_date}, Rem: {b.quantity_remaining})")
+        for b in available_batches
+    ]
 
     if form.validate_on_submit():
-        batch = MedicineBatch.query_active().filter_by(id=form.batch_id.data).first_or_404()
         dispense_qty = form.quantity.data
+        if dispense_qty <= 0:
+            abort(400, description="Dispense quantity must be greater than zero.")
 
-        if dispense_qty > batch.quantity_remaining:
-            flash(f'Cannot dispense {dispense_qty} units! Only {batch.quantity_remaining} available in batch #{batch.batch_number}.', 'danger')
-            return redirect(url_for('pharmacy.view', id=medicine.id))
+        # Specific batch requested
+        if form.batch_id.data and form.batch_id.data > 0:
+            batch = MedicineBatch.query_active().filter_by(id=form.batch_id.data).first_or_404()
+            if batch.is_expired:
+                abort(400, description=f"Cannot dispense from expired batch #{batch.batch_number} (expired on {batch.expiry_date}).")
 
-        batch.quantity_remaining -= dispense_qty
+            if dispense_qty > batch.quantity_remaining:
+                abort(400, description=f"Cannot dispense {dispense_qty} units! Only {batch.quantity_remaining} available in batch #{batch.batch_number}.")
 
-        # Record dispense record
-        dispense_rec = PharmacyDispense(
-            medicine_id=medicine.id,
-            batch_id=batch.id,
-            quantity=dispense_qty,
-            dispensed_by=current_user.id,
-            dispensed_at=datetime.now(UTC),
-            notes=form.notes.data
-        )
-        db.session.add(dispense_rec)
+            batch.quantity_remaining -= dispense_qty
 
-        # Record Stock Movement OUT
-        movement = StockMovement(
-            medicine_id=medicine.id,
-            batch_id=batch.id,
-            movement_type='OUT',
-            quantity=dispense_qty,
-            reference_type='Dispense',
-            reference_id=dispense_rec.id,
-            performed_by=current_user.id,
-            notes=form.notes.data or 'Dispensed to patient'
-        )
-        db.session.add(movement)
-        log_activity('UPDATE', 'StockMovement', movement.id, f'Dispensed {dispense_qty}x {medicine.name} from Batch #{batch.batch_number}')
+            dispense_rec = PharmacyDispense(
+                medicine_id=medicine.id,
+                batch_id=batch.id,
+                quantity=dispense_qty,
+                dispensed_by=current_user.id,
+                dispensed_at=datetime.now(UTC),
+                notes=form.notes.data
+            )
+            db.session.add(dispense_rec)
+
+            movement = StockMovement(
+                medicine_id=medicine.id,
+                batch_id=batch.id,
+                movement_type='OUT',
+                quantity=dispense_qty,
+                reference_type='Dispense',
+                reference_id=dispense_rec.id,
+                performed_by=current_user.id,
+                notes=form.notes.data or 'Dispensed to patient'
+            )
+            db.session.add(movement)
+            log_activity('UPDATE', 'StockMovement', movement.id, f'Dispensed {dispense_qty}x {medicine.name} from Batch #{batch.batch_number}')
+        else:
+            # Auto-FEFO (First-Expired, First-Out)
+            fefo_batches = [
+                b for b in medicine.batches
+                if not b.is_deleted and not b.is_expired and b.quantity_remaining > 0
+            ]
+            fefo_batches.sort(key=lambda b: b.expiry_date)
+            total_available = sum(b.quantity_remaining for b in fefo_batches)
+            if dispense_qty > total_available:
+                abort(400, description=f"Cannot dispense {dispense_qty} units! Only {total_available} non-expired units available.")
+
+            remaining_to_dispense = dispense_qty
+            for batch in fefo_batches:
+                if remaining_to_dispense <= 0:
+                    break
+                take = min(batch.quantity_remaining, remaining_to_dispense)
+                batch.quantity_remaining -= take
+                remaining_to_dispense -= take
+
+                dispense_rec = PharmacyDispense(
+                    medicine_id=medicine.id,
+                    batch_id=batch.id,
+                    quantity=take,
+                    dispensed_by=current_user.id,
+                    dispensed_at=datetime.now(UTC),
+                    notes=form.notes.data
+                )
+                db.session.add(dispense_rec)
+
+                movement = StockMovement(
+                    medicine_id=medicine.id,
+                    batch_id=batch.id,
+                    movement_type='OUT',
+                    quantity=take,
+                    reference_type='Dispense',
+                    reference_id=dispense_rec.id,
+                    performed_by=current_user.id,
+                    notes=form.notes.data or 'Dispensed to patient (FEFO)'
+                )
+                db.session.add(movement)
+                log_activity('UPDATE', 'StockMovement', movement.id, f'FEFO dispensed {take}x {medicine.name} from Batch #{batch.batch_number}')
+
         db.session.commit()
-
         flash(f'Successfully dispensed {dispense_qty} units of {medicine.name}. Stock updated.', 'success')
 
     return redirect(url_for('pharmacy.view', id=medicine.id))

@@ -44,7 +44,7 @@ def create_order():
     form.pet_id.choices = [(p.id, f"{p.name} ({p.species.name} - Owner: {p.owner.full_name})") for p in Pet.query_active().all()]
     doctors = [u for u in User.query_active().all() if u.has_role('Doctor') or u.has_role('Admin')]
     form.doctor_id.choices = [(d.id, f"Dr. {d.first_name} {d.last_name}") for d in doctors]
-    form.lab_test_id.choices = [(t.id, f"{t.name} ({t.category} - ${t.base_price:.2f})") for t in LabTest.query_active().all()]
+    form.lab_test_id.choices = [(t.id, f"{t.name} ({t.category} - PKR {t.base_price:.2f})") for t in LabTest.query_active().all()]
 
     pre_pet = request.args.get('pet_id', type=int)
     if pre_pet and request.method == 'GET':

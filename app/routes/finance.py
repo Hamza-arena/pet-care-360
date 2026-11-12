@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from decimal import Decimal
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -15,24 +16,14 @@ from app.models import (
     log_activity,
 )
 from app.utils.decorators import staff_required
+from app.utils.finance import (
+    generate_next_invoice_number,
+    recalculate_invoice,
+    to_decimal,
+)
 from app.utils.tenant import assert_tenant_access, get_current_tenant_id, tenant_filter
 
 finance_bp = Blueprint('billing', __name__, url_prefix='/billing')
-
-
-def recalculate_invoice(invoice):
-    """Utility to recompute totals and update payment status."""
-    subtotal = sum(item.total_price for item in invoice.items)
-    invoice.subtotal = subtotal
-    invoice.total_amount = max(0.0, subtotal + (invoice.tax_amount or 0.0) - (invoice.discount_amount or 0.0))
-    invoice.paid_amount = sum(p.amount for p in invoice.payments if not p.is_deleted and p.status == 'Completed')
-
-    if invoice.paid_amount >= invoice.total_amount and invoice.total_amount > 0:
-        invoice.status = 'Paid'
-    elif invoice.paid_amount > 0:
-        invoice.status = 'Partially-Paid'
-    else:
-        invoice.status = 'Unpaid'
 
 
 @finance_bp.route('/')
@@ -72,19 +63,17 @@ def create_invoice():
         form.owner_id.data = pre_owner
 
     if form.validate_on_submit():
-        # Generate unique invoice number: INV-YYYYMM-XXXX
-        today_str = datetime.now(UTC).strftime('%Y%m')
-        inv_count = Invoice.query.count() + 1
-        inv_num = f"INV-{today_str}-{inv_count:04d}"
+        tenant_id = get_current_tenant_id()
+        inv_num = generate_next_invoice_number(tenant_id)
 
         invoice = Invoice(
-            clinic_id=get_current_tenant_id(),
+            clinic_id=tenant_id,
             invoice_number=inv_num,
             owner_id=form.owner_id.data,
             pet_id=form.pet_id.data if form.pet_id.data and form.pet_id.data > 0 else None,
             due_date=form.due_date.data,
-            discount_amount=form.discount_amount.data or 0.0,
-            tax_amount=form.tax_amount.data or 0.0,
+            discount_amount=to_decimal(form.discount_amount.data),
+            tax_amount=to_decimal(form.tax_amount.data),
             notes=form.notes.data,
             status='Draft',
             created_by=current_user.id
@@ -92,6 +81,7 @@ def create_invoice():
         db.session.add(invoice)
         db.session.flush()
 
+        recalculate_invoice(invoice)
         log_activity('CREATE', 'Invoice', invoice.id, f'Created invoice {invoice.invoice_number} for Owner ID {invoice.owner_id}')
         db.session.commit()
 
@@ -126,11 +116,12 @@ def view_invoice(id):
 @staff_required
 def add_item(id):
     invoice = Invoice.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(invoice)
     form = InvoiceItemForm()
     if form.validate_on_submit():
         qty = form.quantity.data
-        price = form.unit_price.data
-        total = qty * price
+        price = to_decimal(form.unit_price.data)
+        total = (Decimal(qty) * price).quantize(Decimal('0.01'))
 
         item = InvoiceItem(
             invoice_id=invoice.id,
@@ -142,7 +133,8 @@ def add_item(id):
         )
         db.session.add(item)
         recalculate_invoice(invoice)
-        log_activity('UPDATE', 'Invoice', invoice.id, f'Added item "{item.description}" (${total:.2f})')
+        currency = invoice.clinic.currency if invoice.clinic and getattr(invoice.clinic, 'currency', None) else 'PKR'
+        log_activity('UPDATE', 'Invoice', invoice.id, f'Added item "{item.description}" ({currency} {total:.2f})')
         db.session.commit()
         flash(f'Added line item: {item.description}', 'success')
 
@@ -154,12 +146,13 @@ def add_item(id):
 @staff_required
 def add_payment(id):
     invoice = Invoice.query_active().filter_by(id=id).first_or_404()
+    assert_tenant_access(invoice)
     form = PaymentForm()
     payment_methods = PaymentMethod.query.filter_by(is_active=True).all()
     form.payment_method_id.choices = [(m.id, m.name) for m in payment_methods]
 
     if form.validate_on_submit():
-        pay_amount = form.amount.data
+        pay_amount = to_decimal(form.amount.data)
         payment = Payment(
             invoice_id=invoice.id,
             payment_method_id=form.payment_method_id.data,
@@ -174,10 +167,11 @@ def add_payment(id):
         db.session.flush()
 
         recalculate_invoice(invoice)
-        log_activity('CREATE', 'Payment', payment.id, f'Recorded payment of ${pay_amount:.2f} for Invoice #{invoice.invoice_number}')
+        currency = invoice.clinic.currency if invoice.clinic and getattr(invoice.clinic, 'currency', None) else 'PKR'
+        log_activity('CREATE', 'Payment', payment.id, f'Recorded payment of {currency} {pay_amount:.2f} for Invoice #{invoice.invoice_number}')
         db.session.commit()
 
-        flash(f'Payment of ${pay_amount:.2f} recorded successfully!', 'success')
+        flash(f'Payment of {currency} {pay_amount:.2f} recorded successfully!', 'success')
 
     return redirect(url_for('billing.view_invoice', id=invoice.id))
 

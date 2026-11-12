@@ -90,11 +90,23 @@ def create_app(config_name=None):
             except Exception:  # noqa: BLE001
                 deleted_total = 0
 
+        clinic = get_current_clinic()
         return {
             'now': datetime.now(UTC),
             'recycle_bin_count': deleted_total,
-            'current_clinic': get_current_clinic()
+            'current_clinic': clinic,
+            'currency': (clinic.currency if clinic and getattr(clinic, 'currency', None) else 'PKR'),
         }
+
+    # Template Currency Filter
+    @app.template_filter('currency')
+    def currency_filter(val):
+        if val is None:
+            val = 0.0
+        from app.utils.tenant import get_current_clinic
+        clinic = get_current_clinic()
+        curr = clinic.currency if clinic and getattr(clinic, 'currency', None) else 'PKR'
+        return f"{curr} {float(val):,.2f}"
 
     # Custom Error Handlers
     @app.errorhandler(429)

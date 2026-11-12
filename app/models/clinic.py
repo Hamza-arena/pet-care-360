@@ -15,6 +15,9 @@ class Clinic(SoftDeleteMixin, TimestampMixin, db.Model):
     opening_time = db.Column(db.Time)
     closing_time = db.Column(db.Time)
     is_active = db.Column(db.Boolean, default=True)
+    currency = db.Column(db.String(10), default='PKR', nullable=False)
+    tax_rate = db.Column(db.Numeric(5, 2), default=16.00, nullable=False)
+    invoice_sequence = db.Column(db.Integer, default=0, nullable=False)
 
     departments = db.relationship('Department', backref='clinic', lazy='dynamic')
     rooms = db.relationship('Room', backref='clinic', lazy='dynamic')

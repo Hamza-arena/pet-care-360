@@ -82,7 +82,7 @@
               </td>
               <td><span class="badge bg-light text-dark border">{{ med.category }}</span></td>
               <td>{{ med.unit }} &bull; {{ med.strength or 'Standard' }}</td>
-              <td class="fw-semibold">${{ "%.2f"|format(med.base_price) }}</td>
+              <td class="fw-semibold">{{ currency }} {{ "%.2f"|format(med.base_price) }}</td>
               <td class="fw-bold font-monospace fs-6">
                 {{ item.total_stock }}
               </td>

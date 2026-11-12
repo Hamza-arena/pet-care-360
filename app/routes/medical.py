@@ -60,56 +60,61 @@ def create():
     form.diagnosis_id.choices = [(0, '-- Select Primary Diagnosis --')] + [(d.id, f"{d.name} ({d.code or 'No code'})") for d in diagnoses]
 
     if form.validate_on_submit():
-        record = MedicalRecord(
-            clinic_id=get_current_tenant_id(),
-            pet_id=pet.id,
-            appointment_id=appointment_id,
-            doctor_id=current_user.id,
-            visit_date=datetime.now(UTC),
-            chief_complaint=form.chief_complaint.data,
-            examination_notes=form.examination_notes.data,
-            temperature=form.temperature.data,
-            weight=form.weight.data,
-            heart_rate=form.heart_rate.data,
-            respiratory_rate=form.respiratory_rate.data,
-            blood_pressure=form.blood_pressure.data,
-            follow_up_date=form.follow_up_date.data,
-            follow_up_notes=form.follow_up_notes.data
-        )
-        db.session.add(record)
-        db.session.flush()
+        try:
+            with db.session.begin_nested():
+                record = MedicalRecord(
+                    clinic_id=get_current_tenant_id(),
+                    pet_id=pet.id,
+                    appointment_id=appointment_id,
+                    doctor_id=current_user.id,
+                    visit_date=datetime.now(UTC),
+                    chief_complaint=form.chief_complaint.data,
+                    examination_notes=form.examination_notes.data,
+                    temperature=form.temperature.data,
+                    weight=form.weight.data,
+                    heart_rate=form.heart_rate.data,
+                    respiratory_rate=form.respiratory_rate.data,
+                    blood_pressure=form.blood_pressure.data,
+                    follow_up_date=form.follow_up_date.data,
+                    follow_up_notes=form.follow_up_notes.data,
+                )
+                db.session.add(record)
+                db.session.flush()
 
-        # Update pet weight if recorded
-        if form.weight.data:
-            pet.weight = form.weight.data
+                # Update pet weight if recorded
+                if form.weight.data:
+                    pet.weight = form.weight.data
 
-        # Link diagnosis if chosen
-        if form.diagnosis_id.data and form.diagnosis_id.data > 0:
-            rec_diag = MedicalRecordDiagnosis(
-                medical_record_id=record.id,
-                diagnosis_id=form.diagnosis_id.data,
-                diagnosis_type='Primary'
-            )
-            db.session.add(rec_diag)
+                # Link diagnosis if chosen
+                if form.diagnosis_id.data and form.diagnosis_id.data > 0:
+                    rec_diag = MedicalRecordDiagnosis(
+                        medical_record_id=record.id,
+                        diagnosis_id=form.diagnosis_id.data,
+                        diagnosis_type='Primary',
+                    )
+                    db.session.add(rec_diag)
 
-        # Add initial treatment if provided
-        if form.treatment_description.data:
-            treatment = Treatment(
-                medical_record_id=record.id,
-                treatment_type='Clinical Intervention',
-                description=form.treatment_description.data,
-                status='Active'
-            )
-            db.session.add(treatment)
+                # Add initial treatment if provided
+                if form.treatment_description.data:
+                    treatment = Treatment(
+                        medical_record_id=record.id,
+                        treatment_type='Clinical Intervention',
+                        description=form.treatment_description.data,
+                        status='Active',
+                    )
+                    db.session.add(treatment)
 
-        # Mark appointment as completed if linked
-        if appointment_id:
-            apt = Appointment.query_active().filter_by(id=appointment_id).first()
-            if apt:
-                apt.status = 'Completed'
+                # Mark appointment as completed if linked
+                if appointment_id:
+                    apt = Appointment.query_active().filter_by(id=appointment_id).first()
+                    if apt:
+                        apt.status = 'Completed'
 
-        log_activity('CREATE', 'MedicalRecord', record.id, f'Recorded clinical visit for {pet.name}')
-        db.session.commit()
+                log_activity('CREATE', 'MedicalRecord', record.id, f'Recorded clinical visit for {pet.name}')
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise
 
         flash(f'Medical examination record created for {pet.name}.', 'success')
         return redirect(url_for('medical.view', id=record.id))
@@ -126,7 +131,7 @@ def view(id):
     
     # Populate prescription medicines dropdown
     medicines = Medicine.query_active().order_by(Medicine.name).all()
-    rx_form.medicine_id.choices = [(m.id, f"{m.name} ({m.strength or m.unit}) - ${m.base_price:.2f}") for m in medicines]
+    rx_form.medicine_id.choices = [(m.id, f"{m.name} ({m.strength or m.unit}) - PKR {m.base_price:.2f}") for m in medicines]
 
     # Get or create active prescription for this visit
     active_rx = record.prescriptions.filter_by(deleted_at=None).first()

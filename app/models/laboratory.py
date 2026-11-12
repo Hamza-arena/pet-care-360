@@ -16,7 +16,7 @@ class LabTest(SoftDeleteMixin, TimestampMixin, db.Model):
     sample_type = db.Column(db.String(50))  # Blood, Urine, Tissue, Swab, Stool
     normal_range = db.Column(db.String(100))
     unit = db.Column(db.String(20))
-    base_price = db.Column(db.Float, default=0.0)
+    base_price = db.Column(db.Numeric(12, 2), default=0.00)
     turnaround_hours = db.Column(db.Integer, default=24)
 
     # Relationships

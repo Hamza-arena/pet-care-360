@@ -11,7 +11,7 @@ class AppointmentType(SoftDeleteMixin, TimestampMixin, db.Model):
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
     duration_minutes = db.Column(db.Integer, default=30)
-    base_fee = db.Column(db.Float, default=0.0)
+    base_fee = db.Column(db.Numeric(12, 2), default=0.00)
 
     appointments = db.relationship('Appointment', back_populates='appointment_type', lazy='dynamic')
 
@@ -26,6 +26,7 @@ class Appointment(SoftDeleteMixin, TimestampMixin, db.Model):
     pet_id = db.Column(db.Integer, db.ForeignKey('pets.id'), nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     clinic_id = db.Column(db.Integer, db.ForeignKey('clinics.id'), nullable=False)
+    room_id = db.Column(db.Integer, db.ForeignKey('rooms.id'))
     appointment_type_id = db.Column(db.Integer, db.ForeignKey('appointment_types.id'), nullable=False)
     appointment_date = db.Column(db.Date, nullable=False)
     appointment_time = db.Column(db.Time, nullable=False)
@@ -37,6 +38,7 @@ class Appointment(SoftDeleteMixin, TimestampMixin, db.Model):
     pet = db.relationship('Pet', back_populates='appointments')
     doctor = db.relationship('User', foreign_keys=[doctor_id], backref=db.backref('doctor_appointments', lazy='dynamic'))
     clinic = db.relationship('Clinic', backref=db.backref('appointments', lazy='dynamic'))
+    room = db.relationship('Room', backref=db.backref('appointments', lazy='dynamic'))
     appointment_type = db.relationship('AppointmentType', back_populates='appointments')
     creator = db.relationship('User', foreign_keys=[created_by], backref=db.backref('created_appointments', lazy='dynamic'))
     status_history = db.relationship('AppointmentStatusHistory', back_populates='appointment', lazy='dynamic', order_by='AppointmentStatusHistory.changed_at.desc()')

@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app.extensions import db
@@ -15,6 +15,7 @@ from app.models import (
     User,
     log_activity,
 )
+from app.utils.appointments import check_appointment_conflict
 from app.utils.decorators import staff_required
 from app.utils.tenant import assert_tenant_access, get_current_tenant_id, tenant_filter
 
@@ -68,7 +69,7 @@ def create():
     form.doctor_id.choices = [(d.id, f"Dr. {d.first_name} {d.last_name}") for d in doctors]
     
     form.clinic_id.choices = [(c.id, c.name) for c in Clinic.query_active().all()]
-    form.appointment_type_id.choices = [(t.id, f"{t.name} (${t.base_fee:.2f})") for t in AppointmentType.query_active().all()]
+    form.appointment_type_id.choices = [(t.id, f"{t.name} (PKR {t.base_fee:.2f})") for t in AppointmentType.query_active().all()]
 
     # Pre-select pet if passed in query param
     pre_pet = request.args.get('pet_id', type=int)
@@ -76,6 +77,17 @@ def create():
         form.pet_id.data = pre_pet
 
     if form.validate_on_submit():
+        apt_type = db.session.get(AppointmentType, form.appointment_type_id.data)
+        duration = apt_type.duration_minutes if apt_type else 30
+        conflict = check_appointment_conflict(
+            doctor_id=form.doctor_id.data,
+            appointment_date=form.appointment_date.data,
+            appointment_time=form.appointment_time.data,
+            duration_minutes=duration,
+        )
+        if conflict:
+            abort(400, description=conflict)
+
         appointment = Appointment(
             pet_id=form.pet_id.data,
             doctor_id=form.doctor_id.data,

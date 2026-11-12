@@ -95,8 +95,8 @@
                 <td>{{ item.description }}</td>
                 <td><span class="badge bg-light text-dark border">{{ item.item_type or 'Service' }}</span></td>
                 <td class="text-center">{{ item.quantity }}</td>
-                <td class="text-end">${{ "%.2f"|format(item.unit_price) }}</td>
-                <td class="text-end fw-semibold">${{ "%.2f"|format(item.total_price) }}</td>
+                <td class="text-end">{{ currency }} {{ "%.2f"|format(item.unit_price) }}</td>
+                <td class="text-end fw-semibold">{{ currency }} {{ "%.2f"|format(item.total_price) }}</td>
               </tr>
               {% else %}
               <tr>
@@ -107,31 +107,31 @@
             <tfoot>
               <tr>
                 <th colspan="4" class="text-end">Subtotal:</th>
-                <td class="text-end font-monospace">${{ "%.2f"|format(invoice.subtotal) }}</td>
+                <td class="text-end font-monospace">{{ currency }} {{ "%.2f"|format(invoice.subtotal) }}</td>
               </tr>
               {% if invoice.discount_amount and invoice.discount_amount > 0 %}
               <tr>
                 <th colspan="4" class="text-end text-success">Discount:</th>
-                <td class="text-end font-monospace text-success">-${{ "%.2f"|format(invoice.discount_amount) }}</td>
+                <td class="text-end font-monospace text-success">-{{ currency }} {{ "%.2f"|format(invoice.discount_amount) }}</td>
               </tr>
               {% endif %}
               {% if invoice.tax_amount and invoice.tax_amount > 0 %}
               <tr>
                 <th colspan="4" class="text-end">Tax:</th>
-                <td class="text-end font-monospace">${{ "%.2f"|format(invoice.tax_amount) }}</td>
+                <td class="text-end font-monospace">{{ currency }} {{ "%.2f"|format(invoice.tax_amount) }}</td>
               </tr>
               {% endif %}
               <tr class="table-light fs-5">
                 <th colspan="4" class="text-end fw-bold">Total Amount:</th>
-                <td class="text-end fw-bold text-primary font-monospace">${{ "%.2f"|format(invoice.total_amount) }}</td>
+                <td class="text-end fw-bold text-primary font-monospace">{{ currency }} {{ "%.2f"|format(invoice.total_amount) }}</td>
               </tr>
               <tr>
                 <th colspan="4" class="text-end text-success">Payments Received:</th>
-                <td class="text-end fw-bold text-success font-monospace">${{ "%.2f"|format(invoice.paid_amount) }}</td>
+                <td class="text-end fw-bold text-success font-monospace">{{ currency }} {{ "%.2f"|format(invoice.paid_amount) }}</td>
               </tr>
               <tr class="table-warning">
                 <th colspan="4" class="text-end fw-bold text-danger">Balance Due:</th>
-                <td class="text-end fw-bold text-danger font-monospace fs-5">${{ "%.2f"|format(invoice.balance_due) }}</td>
+                <td class="text-end fw-bold text-danger font-monospace fs-5">{{ currency }} {{ "%.2f"|format(invoice.balance_due) }}</td>
               </tr>
             </tfoot>
           </table>

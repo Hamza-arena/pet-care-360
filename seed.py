@@ -151,6 +151,9 @@ def seed_database():
             license_number='VET-ISB-2024-001',
             opening_time=time(8, 0),
             closing_time=time(20, 0),
+            currency='PKR',
+            tax_rate=16.00,
+            invoice_sequence=1,
             is_active=True
         )
         db.session.add(clinic)
@@ -558,6 +561,7 @@ def seed_database():
 
         # Create Invoice for Rocky's visit
         inv = Invoice(
+            clinic_id=clinic.id,
             invoice_number='INV-2026-0001',
             owner_id=owner_objs[0].id,
             pet_id=pet_objs[0].id,

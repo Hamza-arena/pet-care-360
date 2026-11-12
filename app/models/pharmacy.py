@@ -15,7 +15,7 @@ class Medicine(TenantMixin, SoftDeleteMixin, TimestampMixin, db.Model):
     manufacturer = db.Column(db.String(100))
     unit = db.Column(db.String(20))  # Tablet, Capsule, Syrup, Injection, Cream, Drops
     strength = db.Column(db.String(50))
-    base_price = db.Column(db.Float, default=0.0)
+    base_price = db.Column(db.Numeric(12, 2), default=0.00)
     requires_prescription = db.Column(db.Boolean, default=True)
     minimum_stock = db.Column(db.Integer, default=10)
 
@@ -29,14 +29,17 @@ class Medicine(TenantMixin, SoftDeleteMixin, TimestampMixin, db.Model):
 
 class MedicineBatch(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'medicine_batches'
+    __table_args__ = (
+        db.CheckConstraint('quantity_remaining >= 0', name='ck_batch_quantity_non_negative'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     medicine_id = db.Column(db.Integer, db.ForeignKey('medicines.id'), nullable=False)
     batch_number = db.Column(db.String(50), nullable=False)
     quantity_received = db.Column(db.Integer, nullable=False)
     quantity_remaining = db.Column(db.Integer, nullable=False)
-    purchase_price = db.Column(db.Float)
-    selling_price = db.Column(db.Float)
+    purchase_price = db.Column(db.Numeric(12, 2))
+    selling_price = db.Column(db.Numeric(12, 2))
     manufacture_date = db.Column(db.Date)
     expiry_date = db.Column(db.Date, nullable=False)
     supplier = db.Column(db.String(100))
@@ -45,7 +48,7 @@ class MedicineBatch(SoftDeleteMixin, TimestampMixin, db.Model):
 
     @property
     def is_expired(self):
-        return self.expiry_date < date.today()
+        return self.expiry_date <= date.today()
 
     def __repr__(self):
         return f'<MedicineBatch {self.batch_number}>'

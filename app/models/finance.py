@@ -6,19 +6,22 @@ from app.models.base import SoftDeleteMixin, TenantMixin, TimestampMixin
 
 class Invoice(TenantMixin, SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'invoices'
+    __table_args__ = (
+        db.UniqueConstraint('clinic_id', 'invoice_number', name='uq_invoice_clinic_number'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
-    invoice_number = db.Column(db.String(20), unique=True, nullable=False)
+    invoice_number = db.Column(db.String(30), nullable=False)
     owner_id = db.Column(db.Integer, db.ForeignKey('owners.id'), nullable=False)
     pet_id = db.Column(db.Integer, db.ForeignKey('pets.id'))
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'))
     issue_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     due_date = db.Column(db.Date)
-    subtotal = db.Column(db.Float, default=0.0)
-    tax_amount = db.Column(db.Float, default=0.0)
-    discount_amount = db.Column(db.Float, default=0.0)
-    total_amount = db.Column(db.Float, default=0.0)
-    paid_amount = db.Column(db.Float, default=0.0)
+    subtotal = db.Column(db.Numeric(12, 2), default=0.00, nullable=False)
+    tax_amount = db.Column(db.Numeric(12, 2), default=0.00, nullable=False)
+    discount_amount = db.Column(db.Numeric(12, 2), default=0.00, nullable=False)
+    total_amount = db.Column(db.Numeric(12, 2), default=0.00, nullable=False)
+    paid_amount = db.Column(db.Numeric(12, 2), default=0.00, nullable=False)
     status = db.Column(db.String(20), default='Draft')
     notes = db.Column(db.Text)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
@@ -47,9 +50,9 @@ class InvoiceItem(TimestampMixin, db.Model):
     description = db.Column(db.String(200), nullable=False)
     item_type = db.Column(db.String(50))
     quantity = db.Column(db.Integer, default=1)
-    unit_price = db.Column(db.Float, nullable=False)
-    discount = db.Column(db.Float, default=0.0)
-    total_price = db.Column(db.Float, nullable=False)
+    unit_price = db.Column(db.Numeric(12, 2), nullable=False)
+    discount = db.Column(db.Numeric(12, 2), default=0.00)
+    total_price = db.Column(db.Numeric(12, 2), nullable=False)
     reference_type = db.Column(db.String(50))
     reference_id = db.Column(db.Integer)
 
@@ -63,7 +66,7 @@ class Payment(SoftDeleteMixin, TimestampMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     invoice_id = db.Column(db.Integer, db.ForeignKey('invoices.id'), nullable=False)
     payment_method_id = db.Column(db.Integer, db.ForeignKey('payment_methods.id'))
-    amount = db.Column(db.Float, nullable=False)
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
     payment_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     transaction_reference = db.Column(db.String(100))
     status = db.Column(db.String(20), default='Completed')

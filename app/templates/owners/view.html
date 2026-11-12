@@ -169,8 +169,8 @@
                 <tr>
                   <td class="fw-semibold">{{ inv.invoice_number }}</td>
                   <td>{{ inv.issue_date.strftime('%b %d, %Y') }}</td>
-                  <td>${{ "%.2f"|format(inv.total_amount) }}</td>
-                  <td class="text-success">${{ "%.2f"|format(inv.paid_amount) }}</td>
+                  <td>{{ currency }} {{ "%.2f"|format(inv.total_amount) }}</td>
+                  <td class="text-success">{{ currency }} {{ "%.2f"|format(inv.paid_amount) }}</td>
                   <td>
                     {% if inv.status == 'Paid' %}
                       <span class="badge bg-success">Paid</span>

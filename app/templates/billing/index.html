@@ -19,21 +19,21 @@
     <div class="col-md-6 col-lg-3">
       <div class="stat-card">
         <div class="text-muted small fw-semibold text-uppercase">Total Invoiced Volume</div>
-        <h3 class="fw-bold my-1 text-primary">${{ "%.2f"|format(total_billed) }}</h3>
+        <h3 class="fw-bold my-1 text-primary">{{ currency }} {{ "%.2f"|format(total_billed) }}</h3>
         <small class="text-muted">All active invoices</small>
       </div>
     </div>
     <div class="col-md-6 col-lg-3">
       <div class="stat-card">
         <div class="text-muted small fw-semibold text-uppercase">Total Payments Collected</div>
-        <h3 class="fw-bold my-1 text-success">${{ "%.2f"|format(total_collected) }}</h3>
+        <h3 class="fw-bold my-1 text-success">{{ currency }} {{ "%.2f"|format(total_collected) }}</h3>
         <small class="text-success"><i class="bi bi-check-all"></i> Verified Revenue</small>
       </div>
     </div>
     <div class="col-md-6 col-lg-3">
       <div class="stat-card">
         <div class="text-muted small fw-semibold text-uppercase">Accounts Receivable</div>
-        <h3 class="fw-bold my-1 text-danger">${{ "%.2f"|format([total_billed - total_collected, 0.0]|max) }}</h3>
+        <h3 class="fw-bold my-1 text-danger">{{ currency }} {{ "%.2f"|format([total_billed - total_collected, 0.0]|max) }}</h3>
         <small class="text-danger">Outstanding Balance</small>
       </div>
     </div>
@@ -83,13 +83,13 @@
                   </a>
                 {% else %}—{% endif %}
               </td>
-              <td class="fw-semibold">${{ "%.2f"|format(inv.total_amount) }}</td>
-              <td class="text-success">${{ "%.2f"|format(inv.paid_amount) }}</td>
+              <td class="fw-semibold">{{ currency }} {{ "%.2f"|format(inv.total_amount) }}</td>
+              <td class="text-success">{{ currency }} {{ "%.2f"|format(inv.paid_amount) }}</td>
               <td>
                 {% if inv.balance_due > 0 %}
-                  <span class="text-danger fw-bold">${{ "%.2f"|format(inv.balance_due) }}</span>
+                  <span class="text-danger fw-bold">{{ currency }} {{ "%.2f"|format(inv.balance_due) }}</span>
                 {% else %}
-                  <span class="text-muted">$0.00</span>
+                  <span class="text-muted">{{ currency }} 0.00</span>
                 {% endif %}
               </td>
               <td>
