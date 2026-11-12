@@ -8,8 +8,8 @@
 | **Phase 2: Multi-tenancy** | DONE | 32/32 | 2026-11-13 | Clinic tenancy, scoped queries, tenant isolation suite |
 | **Phase 3: Business Logic** | DONE | 38/38 | 2026-11-13 | Numeric(12,2), race-safe counters, FEFO dispense, double-booking prevention |
 | **Phase 4: Product Completeness** | DONE | 46/46 | 2026-11-13 | Edit screens, PDF generation, CSV reports, file uploads |
-| **Phase 5: Background Jobs** | TODO | - | - | Celery/Redis, automated reminders, inventory alerts |
-| **Phase 6: Quality & Ops** | TODO | - | - | 80%+ coverage, GitHub Actions CI, Docker, /healthz, N+1 query optimization |
+| **Phase 5: Background Jobs** | DONE | 54/54 | 2026-11-13 | Notification service abstraction, retry engine, automated reminders, low-stock alerts, CLI jobs |
+| **Phase 6: Quality & Ops** | IN-PROGRESS | - | 2026-11-13 | 80%+ coverage, GitHub Actions CI, Docker, /healthz, N+1 query optimization |
 | **Phase 7: SaaS Layer** | TODO | - | - | Clinic signup, plans, subscription tracking, super-admin panel |
 
 ---
@@ -76,8 +76,24 @@
 
 ---
 
-## Phase 5 - Background Jobs & Automation Checklist (Next Phase)
-- [ ] Configure task queue / scheduler abstraction (e.g. CLI worker or cron/background worker).
-- [ ] Implement automated vaccination due reminder generator (identifies overdue & upcoming vaccinations).
-- [ ] Implement low-stock inventory alert generator (identifies medicines at or below minimum threshold).
-- [ ] Write integration test suite verifying reminder dispatch, inventory threshold scans, and idempotency in `tests/test_phase5_background_jobs.py`.
+## Phase 5 - Background Jobs & Automation Checklist (Completed)
+- [x] Implement notification service abstraction in `app/services/notifications.py` (`BaseNotificationService`, `ConsoleNotificationService` with in-memory outbox, `SmtpNotificationService`).
+- [x] Implement robust `@retry_job` decorator with exponential backoff for network/transient failure recovery.
+- [x] Implement scheduled background jobs in `app/services/jobs.py`:
+  - `process_appointment_reminders`: 24-hour upcoming window scan, status history logging, idempotent (no duplicate sends).
+  - `process_low_stock_alerts`: aggregated clinic low-inventory digest based on `minimum_stock`.
+  - `process_vaccination_reminders`: due-date scan, transitioning status to 'Sent'.
+  - `process_overdue_invoice_reminders`: past-due invoice alerts with localized clinic currency.
+  - `run_all_scheduled_jobs`: master job runner executing all scheduled maintenance tasks.
+- [x] Register CLI commands in `app/commands.py`: `run-jobs`, `send-reminders`, `check-inventory-alerts`.
+- [x] Create comprehensive Phase 5 test suite in `tests/test_phase5_background_jobs.py` (8/8 tests passing).
+- [x] 54/54 total automated tests passing across the application.
+
+---
+
+## Phase 6 - Quality & Operations Checklist (In Progress)
+- [ ] Implement production health check endpoint at `/healthz` (probing database connectivity and system status).
+- [ ] Add Dockerfile and `docker-compose.yml` for unified local/production deployments.
+- [ ] Setup GitHub Actions CI workflow (`.github/workflows/ci.yml`) for automated linting, test suite execution, and migration validation.
+- [ ] Optimize database queries and eliminate N+1 bottlenecks on high-traffic endpoints (dashboard, reports, inventory).
+- [ ] Increase test coverage across remaining routes to achieve 80%+ coverage target.

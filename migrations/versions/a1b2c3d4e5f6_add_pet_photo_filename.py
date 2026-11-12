@@ -24,3 +24,4 @@ def upgrade():
 def downgrade():
     with op.batch_alter_table('pets', schema=None) as batch_op:
         batch_op.drop_column('photo_filename')
+

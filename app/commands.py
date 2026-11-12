@@ -63,6 +63,48 @@ def seed_demo_command():
     click.echo("Demo data seeding completed.")
 
 
+@click.command('run-jobs')
+@with_appcontext
+def run_jobs_command():
+    """Execute all scheduled background jobs (appointment reminders, low stock, vaccinations)."""
+    from app.services.jobs import run_all_scheduled_jobs
+    summary = run_all_scheduled_jobs()
+    click.echo(f"Executed all scheduled jobs: {summary}")
+
+
+@click.command('send-reminders')
+@click.option('--job', type=click.Choice(['appointments', 'vaccinations', 'overdue', 'all']), default='all')
+@with_appcontext
+def send_reminders_command(job):
+    """Dispatch scheduled reminders for appointments, vaccinations, or overdue invoices."""
+    from app.services.jobs import (
+        process_appointment_reminders,
+        process_overdue_invoice_reminders,
+        process_vaccination_reminders,
+    )
+    if job in ('appointments', 'all'):
+        count = process_appointment_reminders()
+        click.echo(f"Appointment reminders dispatched: {count}")
+    if job in ('vaccinations', 'all'):
+        count = process_vaccination_reminders()
+        click.echo(f"Vaccination reminders dispatched: {count}")
+    if job in ('overdue', 'all'):
+        count = process_overdue_invoice_reminders()
+        click.echo(f"Overdue invoice reminders dispatched: {count}")
+
+
+@click.command('check-inventory-alerts')
+@with_appcontext
+def check_inventory_alerts_command():
+    """Identify low inventory medicines and dispatch digest alerts to clinic admins."""
+    from app.services.jobs import process_low_stock_alerts
+    alerts = process_low_stock_alerts()
+    click.echo(f"Low-stock alert digests dispatched: {alerts}")
+
+
 def register_commands(app):
     app.cli.add_command(create_admin_command)
     app.cli.add_command(seed_demo_command)
+    app.cli.add_command(run_jobs_command)
+    app.cli.add_command(send_reminders_command)
+    app.cli.add_command(check_inventory_alerts_command)
