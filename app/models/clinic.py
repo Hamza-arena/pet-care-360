@@ -2,7 +2,7 @@ from app.extensions import db
 from app.models.base import SoftDeleteMixin, TimestampMixin
 
 
-class Clinic(db.Model, SoftDeleteMixin, TimestampMixin):
+class Clinic(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'clinics'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -23,7 +23,7 @@ class Clinic(db.Model, SoftDeleteMixin, TimestampMixin):
         return f'<Clinic {self.name}>'
 
 
-class Department(db.Model, SoftDeleteMixin, TimestampMixin):
+class Department(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'departments'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -39,7 +39,7 @@ class Department(db.Model, SoftDeleteMixin, TimestampMixin):
         return f'<Department {self.name}>'
 
 
-class Room(db.Model, SoftDeleteMixin, TimestampMixin):
+class Room(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'rooms'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -54,7 +54,7 @@ class Room(db.Model, SoftDeleteMixin, TimestampMixin):
         return f'<Room {self.room_number}>'
 
 
-class DoctorSchedule(db.Model, SoftDeleteMixin, TimestampMixin):
+class DoctorSchedule(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'doctor_schedules'
 
     id = db.Column(db.Integer, primary_key=True)

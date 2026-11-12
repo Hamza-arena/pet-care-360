@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% import "macros/pagination.html" as pg %}
+{% block title %}System Audit Trails{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h3 class="fw-bold mb-1"><i class="bi bi-journal-text text-primary me-2"></i> System Activity & Audit Trail</h3>
+      <p class="text-muted small mb-0">Immutable compliance logs tracking user logins, CRUD modifications, soft deletes, and restores.</p>
+    </div>
+
+    <!-- Action Filter Pills -->
+    <div class="btn-group btn-group-sm">
+      <a href="{{ url_for('admin.audit_logs') }}" class="btn {% if not selected_action %}btn-primary{% else %}btn-outline-secondary{% endif %}">All</a>
+      {% for act in actions %}
+      <a href="{{ url_for('admin.audit_logs', action=act) }}" class="btn {% if selected_action == act %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+        {{ act }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      {% if pagination.items %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 font-monospace small">
+          <thead class="table-light font-sans-serif">
+            <tr>
+              <th>Timestamp</th>
+              <th>Action</th>
+              <th>Entity</th>
+              <th>Target ID</th>
+              <th>Performed By</th>
+              <th>IP Address</th>
+              <th>Operation Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in pagination.items %}
+            <tr>
+              <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+              <td>
+                {% if log.action == 'CREATE' %}
+                  <span class="badge bg-success">CREATE</span>
+                {% elif log.action == 'UPDATE' %}
+                  <span class="badge bg-info text-dark">UPDATE</span>
+                {% elif log.action == 'DELETE' %}
+                  <span class="badge bg-warning text-dark">DELETE</span>
+                {% elif log.action == 'RESTORE' %}
+                  <span class="badge bg-primary">RESTORE</span>
+                {% elif log.action == 'PURGE' %}
+                  <span class="badge bg-danger">PURGE</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ log.action }}</span>
+                {% endif %}
+              </td>
+              <td class="fw-bold">{{ log.entity_type }}</td>
+              <td>#{{ log.entity_id or '—' }}</td>
+              <td>{{ log.user.username if log.user else 'System' }}</td>
+              <td>{{ log.ip_address or '127.0.0.1' }}</td>
+              <td class="font-sans-serif text-dark">{{ log.details or '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {{ pg.render_pagination(pagination, 'admin.audit_logs', action=selected_action) }}
+      {% else %}
+      <div class="text-center py-5 text-muted">No audit trail entries recorded yet.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+

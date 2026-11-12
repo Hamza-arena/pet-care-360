@@ -1,10 +1,10 @@
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from app.extensions import db
 from app.models.base import SoftDeleteMixin, TimestampMixin
 
 
-class Medicine(db.Model, SoftDeleteMixin, TimestampMixin):
+class Medicine(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'medicines'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -26,7 +26,7 @@ class Medicine(db.Model, SoftDeleteMixin, TimestampMixin):
         return f'<Medicine {self.name}>'
 
 
-class MedicineBatch(db.Model, SoftDeleteMixin, TimestampMixin):
+class MedicineBatch(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'medicine_batches'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -50,7 +50,7 @@ class MedicineBatch(db.Model, SoftDeleteMixin, TimestampMixin):
         return f'<MedicineBatch {self.batch_number}>'
 
 
-class PharmacyDispense(db.Model, TimestampMixin):
+class PharmacyDispense(TimestampMixin, db.Model):
     __tablename__ = 'pharmacy_dispenses'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -59,7 +59,7 @@ class PharmacyDispense(db.Model, TimestampMixin):
     batch_id = db.Column(db.Integer, db.ForeignKey('medicine_batches.id'))
     quantity = db.Column(db.Integer, nullable=False)
     dispensed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    dispensed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    dispensed_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     notes = db.Column(db.Text)
 
     # Relationships
@@ -71,7 +71,7 @@ class PharmacyDispense(db.Model, TimestampMixin):
         return f'<PharmacyDispense {self.id}>'
 
 
-class StockMovement(db.Model, TimestampMixin):
+class StockMovement(TimestampMixin, db.Model):
     __tablename__ = 'stock_movements'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -82,7 +82,7 @@ class StockMovement(db.Model, TimestampMixin):
     reference_type = db.Column(db.String(50))  # Purchase, Dispense, Adjustment, Return
     reference_id = db.Column(db.Integer)
     performed_by = db.Column(db.Integer, db.ForeignKey('users.id'))
-    movement_date = db.Column(db.DateTime, default=datetime.utcnow)
+    movement_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     notes = db.Column(db.Text)
 
     # Relationships

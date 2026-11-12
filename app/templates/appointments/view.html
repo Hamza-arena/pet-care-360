@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Appointment #{{ appointment.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <a href="{{ url_for('appointments.index') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <h3 class="fw-bold mb-0">Appointment #{{ appointment.id }}</h3>
+      <span class="badge bg-primary">{{ appointment.status }}</span>
+    </div>
+
+    <div class="d-flex gap-2">
+      {% if appointment.status != 'Completed' and (current_user.has_role('Doctor') or current_user.has_role('Admin')) %}
+      <a href="{{ url_for('medical.create', appointment_id=appointment.id) }}" class="btn btn-primary shadow-sm">
+        <i class="bi bi-stethoscope me-1"></i> Start Consultation
+      </a>
+      {% endif %}
+      <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteAptModal">
+        <i class="bi bi-trash3"></i> Delete
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Column: Appointment Details & Token -->
+    <div class="col-lg-7">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h5 class="fw-bold mb-0"><i class="bi bi-calendar-event text-primary me-2"></i> Visit Details</h5>
+          {% if appointment.queue_token %}
+            <span class="badge bg-dark fs-6 font-monospace px-3 py-2">
+              Queue Token: {{ appointment.queue_token.token_number }}
+            </span>
+          {% endif %}
+        </div>
+        <div class="card-body p-4">
+          <table class="table table-bordered mb-4">
+            <tr>
+              <th class="w-35 text-muted">Patient Pet</th>
+              <td>
+                <a href="{{ url_for('pets.view', id=appointment.pet.id) }}" class="fw-bold text-decoration-none">
+                  {{ appointment.pet.name }}
+                </a>
+                <span class="badge bg-light text-dark border ms-1">{{ appointment.pet.species.name }}</span>
+              </td>
+            </tr>
+            <tr>
+              <th class="text-muted">Owner</th>
+              <td>
+                <a href="{{ url_for('owners.view', id=appointment.pet.owner.id) }}" class="text-decoration-none">
+                  {{ appointment.pet.owner.full_name }}
+                </a> ({{ appointment.pet.owner.phone }})
+              </td>
+            </tr>
+            <tr>
+              <th class="text-muted">Assigned Doctor</th>
+              <td>Dr. {{ appointment.doctor.first_name }} {{ appointment.doctor.last_name }}</td>
+            </tr>
+            <tr>
+              <th class="text-muted">Clinic Branch</th>
+              <td>{{ appointment.clinic.name }}</td>
+            </tr>
+            <tr>
+              <th class="text-muted">Service Type</th>
+              <td>{{ appointment.appointment_type.name }} (${{ "%.2f"|format(appointment.appointment_type.base_fee) }})</td>
+            </tr>
+            <tr>
+              <th class="text-muted">Scheduled Time</th>
+              <td>
+                <strong>{{ appointment.appointment_date.strftime('%A, %B %d, %Y') }}</strong> at {{ appointment.appointment_time.strftime('%I:%M %p') }}
+              </td>
+            </tr>
+            <tr>
+              <th class="text-muted">Reason for Visit</th>
+              <td>{{ appointment.reason }}</td>
+            </tr>
+            {% if appointment.notes %}
+            <tr>
+              <th class="text-muted">Internal Notes</th>
+              <td>{{ appointment.notes }}</td>
+            </tr>
+            {% endif %}
+          </table>
+
+          <!-- Status Transition Form -->
+          <div class="border rounded p-3 bg-light">
+            <h6 class="fw-bold mb-2"><i class="bi bi-arrow-repeat me-1"></i> Update Appointment & Queue Status</h6>
+            <form method="POST" action="{{ url_for('appointments.update_status', id=appointment.id) }}" class="row g-2 align-items-end">
+              {{ status_form.hidden_tag() }}
+              <div class="col-md-5">
+                {{ status_form.new_status.label(class="form-label small fw-semibold") }}
+                {{ status_form.new_status(class="form-select form-select-sm") }}
+              </div>
+              <div class="col-md-5">
+                {{ status_form.notes.label(class="form-label small fw-semibold") }}
+                {{ status_form.notes(class="form-control form-control-sm", placeholder="Optional comment...") }}
+              </div>
+              <div class="col-md-2">
+                {{ status_form.submit(class="btn btn-sm btn-primary w-100") }}
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Status Change History Timeline -->
+    <div class="col-lg-5">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white py-3">
+          <h5 class="fw-bold mb-0"><i class="bi bi-clock-history text-primary me-2"></i> Status Audit History</h5>
+        </div>
+        <div class="card-body">
+          <ul class="list-group list-group-flush">
+            {% for h in appointment.status_history %}
+            <li class="list-group-item px-0 py-2">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <span class="badge bg-primary">{{ h.new_status }}</span>
+                  {% if h.old_status %}
+                    <small class="text-muted">from {{ h.old_status }}</small>
+                  {% endif %}
+                </div>
+                <small class="text-muted">{{ h.changed_at.strftime('%b %d, %H:%M') }}</small>
+              </div>
+              {% if h.notes %}
+              <div class="text-muted small mt-1">{{ h.notes }}</div>
+              {% endif %}
+              <div class="small text-secondary" style="font-size: 0.75rem;">
+                By: {{ h.user.username if h.user else 'System' }}
+              </div>
+            </li>
+            {% else %}
+            <li class="list-group-item text-muted small">No status changes recorded.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Soft Delete Modal -->
+<div class="modal fade" id="deleteAptModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="bi bi-trash3 me-2"></i> Soft Delete Appointment</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Cancel and soft-delete appointment <strong>#{{ appointment.id }}</strong> for <strong>{{ appointment.pet.name }}</strong>?</p>
+        <p class="small text-muted mb-0">This appointment will be moved to the Admin Recycle Bin.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form method="POST" action="{{ url_for('appointments.delete', id=appointment.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger">Move to Recycle Bin</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

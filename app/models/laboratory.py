@@ -1,10 +1,10 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app.extensions import db
 from app.models.base import SoftDeleteMixin, TimestampMixin
 
 
-class LabTest(db.Model, SoftDeleteMixin, TimestampMixin):
+class LabTest(SoftDeleteMixin, TimestampMixin, db.Model):
     """Defines available laboratory tests that can be ordered."""
     __tablename__ = 'lab_tests'
 
@@ -26,7 +26,7 @@ class LabTest(db.Model, SoftDeleteMixin, TimestampMixin):
         return f'<LabTest {self.name} ({self.code})>'
 
 
-class LabOrder(db.Model, SoftDeleteMixin, TimestampMixin):
+class LabOrder(SoftDeleteMixin, TimestampMixin, db.Model):
     """A laboratory order placed by a doctor for a pet."""
     __tablename__ = 'lab_orders'
 
@@ -34,7 +34,7 @@ class LabOrder(db.Model, SoftDeleteMixin, TimestampMixin):
     pet_id = db.Column(db.Integer, db.ForeignKey('pets.id'), nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     medical_record_id = db.Column(db.Integer, db.ForeignKey('medical_records.id'))
-    order_date = db.Column(db.DateTime, default=datetime.utcnow)
+    order_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     status = db.Column(db.String(20), default='Pending')  # Pending, Sample-Collected, In-Progress, Completed, Cancelled
     priority = db.Column(db.String(20), default='Routine')  # Routine, Urgent, STAT
     notes = db.Column(db.Text)
@@ -48,7 +48,7 @@ class LabOrder(db.Model, SoftDeleteMixin, TimestampMixin):
         return f'<LabOrder #{self.id} - {self.status}>'
 
 
-class LabOrderItem(db.Model, TimestampMixin):
+class LabOrderItem(TimestampMixin, db.Model):
     """An individual test item within a lab order."""
     __tablename__ = 'lab_order_items'
 
@@ -65,7 +65,7 @@ class LabOrderItem(db.Model, TimestampMixin):
         return f'<LabOrderItem #{self.id} - Order #{self.lab_order_id}>'
 
 
-class LabResult(db.Model, TimestampMixin):
+class LabResult(TimestampMixin, db.Model):
     """The result of a specific lab test order item."""
     __tablename__ = 'lab_results'
 
@@ -89,7 +89,7 @@ class LabResult(db.Model, TimestampMixin):
         return f'<LabResult #{self.id} - {"Abnormal" if self.is_abnormal else "Normal"}>'
 
 
-class Surgery(db.Model, SoftDeleteMixin, TimestampMixin):
+class Surgery(SoftDeleteMixin, TimestampMixin, db.Model):
     """A surgical procedure scheduled or performed on a pet."""
     __tablename__ = 'surgeries'
 

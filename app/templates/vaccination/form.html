@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-7 mx-auto">
+      <div class="d-flex align-items-center mb-3">
+        <a href="{{ url_for('vaccination.index') }}" class="btn btn-sm btn-outline-secondary me-2">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <h3 class="fw-bold mb-0">{{ title }}</h3>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-body p-4">
+          <form method="POST" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+              {{ form.pet_id.label(class="form-label small fw-semibold") }}
+              {{ form.pet_id(class="form-select") }}
+            </div>
+
+            <div class="mb-3">
+              {{ form.vaccine_id.label(class="form-label small fw-semibold") }}
+              {{ form.vaccine_id(class="form-select") }}
+            </div>
+
+            <div class="mb-3">
+              {{ form.doctor_id.label(class="form-label small fw-semibold") }}
+              {{ form.doctor_id(class="form-select") }}
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                {{ form.administration_date.label(class="form-label small fw-semibold") }}
+                {{ form.administration_date(class="form-control") }}
+              </div>
+              <div class="col-md-6">
+                {{ form.next_due_date.label(class="form-label small fw-semibold") }}
+                {{ form.next_due_date(class="form-control") }}
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                {{ form.dose_number.label(class="form-label small fw-semibold") }}
+                {{ form.dose_number(class="form-control") }}
+              </div>
+              <div class="col-md-4">
+                {{ form.batch_number.label(class="form-label small fw-semibold") }}
+                {{ form.batch_number(class="form-control", placeholder="Lot #") }}
+              </div>
+              <div class="col-md-4">
+                {{ form.site_of_administration.label(class="form-label small fw-semibold") }}
+                {{ form.site_of_administration(class="form-select") }}
+              </div>
+            </div>
+
+            <div class="mb-3">
+              {{ form.reaction.label(class="form-label small fw-semibold") }}
+              {{ form.reaction(class="form-control", rows=2, placeholder="Adverse reactions if any...") }}
+            </div>
+
+            <div class="mb-4">
+              {{ form.notes.label(class="form-label small fw-semibold") }}
+              {{ form.notes(class="form-control", rows=2, placeholder="Notes...") }}
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+              <a href="{{ url_for('vaccination.index') }}" class="btn btn-outline-secondary">Cancel</a>
+              {{ form.submit(class="btn btn-primary px-4") }}
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

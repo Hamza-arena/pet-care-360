@@ -2,7 +2,7 @@ from app.extensions import db
 from app.models.base import SoftDeleteMixin, TimestampMixin
 
 
-class Owner(db.Model, SoftDeleteMixin, TimestampMixin):
+class Owner(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'owners'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -16,9 +16,9 @@ class Owner(db.Model, SoftDeleteMixin, TimestampMixin):
     notes = db.Column(db.Text)
     registered_by = db.Column(db.Integer, db.ForeignKey('users.id'))
 
-    addresses = db.relationship('OwnerAddress', backref='owner', lazy='dynamic')
-    contacts = db.relationship('OwnerContact', backref='owner', lazy='dynamic')
-    pets = db.relationship('Pet', backref='owner', lazy='dynamic')
+    addresses = db.relationship('OwnerAddress', back_populates='owner', lazy='dynamic')
+    contacts = db.relationship('OwnerContact', back_populates='owner', lazy='dynamic')
+    pets = db.relationship('Pet', back_populates='owner', lazy='dynamic')
 
     @property
     def full_name(self):
@@ -28,7 +28,7 @@ class Owner(db.Model, SoftDeleteMixin, TimestampMixin):
         return f'<Owner {self.full_name}>'
 
 
-class OwnerAddress(db.Model, SoftDeleteMixin, TimestampMixin):
+class OwnerAddress(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'owner_addresses'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -41,11 +41,13 @@ class OwnerAddress(db.Model, SoftDeleteMixin, TimestampMixin):
     country = db.Column(db.String(100), default='Pakistan')
     is_primary = db.Column(db.Boolean, default=False)
 
+    owner = db.relationship('Owner', back_populates='addresses')
+
     def __repr__(self):
         return f'<OwnerAddress {self.address_type} - {self.city}>'
 
 
-class OwnerContact(db.Model, SoftDeleteMixin, TimestampMixin):
+class OwnerContact(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'owner_contacts'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -53,6 +55,8 @@ class OwnerContact(db.Model, SoftDeleteMixin, TimestampMixin):
     contact_type = db.Column(db.String(20), nullable=False)
     contact_value = db.Column(db.String(120), nullable=False)
     is_primary = db.Column(db.Boolean, default=False)
+
+    owner = db.relationship('Owner', back_populates='contacts')
 
     def __repr__(self):
         return f'<OwnerContact {self.contact_type} - {self.contact_value}>'

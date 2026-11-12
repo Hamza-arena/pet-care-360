@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Hospital Facilities & Branches{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h3 class="fw-bold mb-1"><i class="bi bi-hospital-fill text-primary me-2"></i> Clinical Facilities, Departments & Rooms</h3>
+      <p class="text-muted small mb-0">Overview of veterinary clinic branches, wards, examination rooms, and operating theaters.</p>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Clinics -->
+    <div class="col-lg-6">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+          <h5 class="fw-bold mb-0">Clinic Branches ({{ clinics|length }})</h5>
+        </div>
+        <div class="card-body">
+          {% for c in clinics %}
+          <div class="border rounded p-3 mb-3 bg-light">
+            <h5 class="fw-bold text-primary mb-1">{{ c.name }}</h5>
+            <p class="text-muted small mb-2">
+              <i class="bi bi-geo-alt"></i> {{ c.address }}, {{ c.city }} &bull; <i class="bi bi-telephone"></i> {{ c.phone }}
+            </p>
+            <div class="small">
+              <strong>Hours:</strong> {{ c.opening_time.strftime('%I:%M %p') if c.opening_time else '08:00 AM' }} - {{ c.closing_time.strftime('%I:%M %p') if c.closing_time else '08:00 PM' }}
+              &bull; <strong>License:</strong> <code>{{ c.license_number or 'VET-2026-X' }}</code>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Departments & Rooms -->
+    <div class="col-lg-6">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+          <h5 class="fw-bold mb-0">Hospital Rooms & Operating Theaters ({{ rooms|length }})</h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Room #</th>
+                  <th>Type</th>
+                  <th>Branch</th>
+                  <th>Capacity</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in rooms %}
+                <tr>
+                  <td class="fw-bold">{{ r.room_number }}</td>
+                  <td>{{ r.room_type or 'Examination' }}</td>
+                  <td>{{ r.clinic.name }}</td>
+                  <td>{{ r.capacity }} patient(s)</td>
+                  <td>
+                    {% if r.is_available %}
+                      <span class="badge bg-success">Available</span>
+                    {% else %}
+                      <span class="badge bg-warning text-dark">Occupied</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

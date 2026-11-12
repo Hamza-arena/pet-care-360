@@ -1,7 +1,7 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from flask_login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
 from app.models.base import SoftDeleteMixin, TimestampMixin
@@ -49,7 +49,7 @@ class User(UserMixin, SoftDeleteMixin, TimestampMixin, db.Model):
 
     def has_role(self, role_name):
         return any(
-            role.name == role_name
+            role.name.lower() == role_name.lower()
             for role in self.roles
         )
 
@@ -113,7 +113,7 @@ class UserRole(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
-    assigned_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    assigned_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
 
     def __repr__(self):
         return f'<UserRole user_id={self.user_id} role_id={self.role_id}>'

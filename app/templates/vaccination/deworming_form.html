@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Record Parasite Treatment{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-7 mx-auto">
+      <div class="d-flex align-items-center mb-3">
+        <a href="{{ url_for('vaccination.index', tab='deworming') }}" class="btn btn-sm btn-outline-secondary me-2">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <h3 class="fw-bold mb-0">Record Parasite / Deworming Treatment</h3>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-body p-4">
+          <form method="POST" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+              {{ form.pet_id.label(class="form-label small fw-semibold") }}
+              {{ form.pet_id(class="form-select") }}
+            </div>
+
+            <div class="mb-3">
+              {{ form.medication_name.label(class="form-label small fw-semibold") }}
+              {{ form.medication_name(class="form-control", placeholder="e.g. Drontal Plus, NexGard Spectra, Milbemax") }}
+            </div>
+
+            <div class="mb-3">
+              {{ form.doctor_id.label(class="form-label small fw-semibold") }}
+              {{ form.doctor_id(class="form-select") }}
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                {{ form.administration_date.label(class="form-label small fw-semibold") }}
+                {{ form.administration_date(class="form-control") }}
+              </div>
+              <div class="col-md-6">
+                {{ form.next_due_date.label(class="form-label small fw-semibold") }}
+                {{ form.next_due_date(class="form-control") }}
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                {{ form.dosage.label(class="form-label small fw-semibold") }}
+                {{ form.dosage(class="form-control", placeholder="e.g. 1 Tablet / 10kg") }}
+              </div>
+              <div class="col-md-6">
+                {{ form.weight_at_time.label(class="form-label small fw-semibold") }}
+                {{ form.weight_at_time(class="form-control", placeholder="e.g. 12.5 kg") }}
+              </div>
+            </div>
+
+            <div class="mb-4">
+              {{ form.notes.label(class="form-label small fw-semibold") }}
+              {{ form.notes(class="form-control", rows=2, placeholder="Parasite indications (tapeworm, roundworm, fleas/ticks)...") }}
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+              <a href="{{ url_for('vaccination.index', tab='deworming') }}" class="btn btn-outline-secondary">Cancel</a>
+              {{ form.submit(class="btn btn-primary px-4") }}
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Generate New Invoice{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-7 mx-auto">
+      <div class="d-flex align-items-center mb-3">
+        <a href="{{ url_for('billing.index') }}" class="btn btn-sm btn-outline-secondary me-2">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <h3 class="fw-bold mb-0">Generate Client Invoice</h3>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-body p-4">
+          <form method="POST" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+              {{ form.owner_id.label(class="form-label small fw-semibold") }}
+              {{ form.owner_id(class="form-select") }}
+            </div>
+
+            <div class="mb-3">
+              {{ form.pet_id.label(class="form-label small fw-semibold") }}
+              {{ form.pet_id(class="form-select") }}
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                {{ form.due_date.label(class="form-label small fw-semibold") }}
+                {{ form.due_date(class="form-control") }}
+              </div>
+              <div class="col-md-3">
+                {{ form.discount_amount.label(class="form-label small fw-semibold") }}
+                {{ form.discount_amount(class="form-control", placeholder="0.00") }}
+              </div>
+              <div class="col-md-3">
+                {{ form.tax_amount.label(class="form-label small fw-semibold") }}
+                {{ form.tax_amount(class="form-control", placeholder="0.00") }}
+              </div>
+            </div>
+
+            <div class="mb-4">
+              {{ form.notes.label(class="form-label small fw-semibold") }}
+              {{ form.notes(class="form-control", rows=2, placeholder="Payment terms, insurance claim notes...") }}
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+              <a href="{{ url_for('billing.index') }}" class="btn btn-outline-secondary">Cancel</a>
+              {{ form.submit(class="btn btn-primary px-4") }}
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

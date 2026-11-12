@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% import "macros/pagination.html" as pg %}
+{% block title %}Pets Dossier{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h3 class="fw-bold mb-1">Enrolled Patients & Pets</h3>
+      <p class="text-muted small mb-0">Browse electronic pet dossiers, clinical histories, and patient records.</p>
+    </div>
+    <a href="{{ url_for('pets.create') }}" class="btn btn-primary shadow-sm">
+      <i class="bi bi-plus-circle me-1"></i> Register New Pet
+    </a>
+  </div>
+
+  <!-- Species Filter Tabs & Search Bar -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-body p-3">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <!-- Species Pills -->
+        <div class="btn-group flex-wrap" role="group">
+          <a href="{{ url_for('pets.index', q=search_q) }}" class="btn btn-sm {% if not selected_species %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            All Species
+          </a>
+          {% for sp in species_list %}
+          <a href="{{ url_for('pets.index', species_id=sp.id, q=search_q) }}" class="btn btn-sm {% if selected_species == sp.id %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            {{ sp.name }}
+          </a>
+          {% endfor %}
+        </div>
+
+        <!-- Search Form -->
+        <form method="GET" action="{{ url_for('pets.index') }}" class="d-flex gap-2">
+          {% if selected_species %}
+            <input type="hidden" name="species_id" value="{{ selected_species }}">
+          {% endif %}
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+            <input type="text" name="q" value="{{ search_q }}" class="form-control" placeholder="Search pet name, microchip #...">
+          </div>
+          <button type="submit" class="btn btn-sm btn-primary">Find</button>
+          {% if search_q %}
+          <a href="{{ url_for('pets.index', species_id=selected_species) }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pets Table -->
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      {% if pagination.items %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Patient</th>
+              <th>Species & Breed</th>
+              <th>Owner</th>
+              <th>Gender & Age</th>
+              <th>Weight</th>
+              <th>Microchip</th>
+              <th>Status</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for pet in pagination.items %}
+            <tr>
+              <td>
+                <a href="{{ url_for('pets.view', id=pet.id) }}" class="fw-bold text-dark text-decoration-none">
+                  {{ pet.name }}
+                </a>
+              </td>
+              <td>
+                <span class="badge bg-light text-dark border">{{ pet.species.name }}</span>
+                <span class="text-muted small ms-1">{{ pet.breed.name if pet.breed else 'Mixed' }}</span>
+              </td>
+              <td>
+                <a href="{{ url_for('owners.view', id=pet.owner.id) }}" class="text-decoration-none text-dark">
+                  {{ pet.owner.full_name }}
+                </a>
+                <div class="text-muted small">{{ pet.owner.phone }}</div>
+              </td>
+              <td>
+                {{ pet.gender }}
+                {% if pet.is_neutered %}
+                  <span class="badge bg-info text-dark ms-1" style="font-size: 0.65rem;">Neutered</span>
+                {% endif %}
+              </td>
+              <td>{{ pet.weight ~ ' kg' if pet.weight else '—' }}</td>
+              <td class="font-monospace small">{{ pet.microchip_number or '—' }}</td>
+              <td>
+                <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+              </td>
+              <td class="text-end">
+                <a href="{{ url_for('pets.view', id=pet.id) }}" class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-file-medical"></i> Dossier
+                </a>
+                <a href="{{ url_for('pets.edit', id=pet.id) }}" class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-pencil"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {{ pg.render_pagination(pagination, 'pets.index', q=search_q, species_id=selected_species) }}
+      {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-bug fs-1 text-secondary mb-2 d-block"></i>
+        <p>No pets found.</p>
+        <a href="{{ url_for('pets.create') }}" class="btn btn-sm btn-primary">Enroll a New Pet</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -2,20 +2,21 @@ from app.extensions import db
 from app.models.base import SoftDeleteMixin, TimestampMixin
 
 
-class Species(db.Model, SoftDeleteMixin, TimestampMixin):
+class Species(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'species'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
     description = db.Column(db.Text)
 
-    breeds = db.relationship('Breed', backref='species', lazy='dynamic')
+    breeds = db.relationship('Breed', back_populates='species', lazy='dynamic')
+    pets = db.relationship('Pet', back_populates='species', lazy='dynamic')
 
     def __repr__(self):
         return f'<Species {self.name}>'
 
 
-class Breed(db.Model, SoftDeleteMixin, TimestampMixin):
+class Breed(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'breeds'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -25,11 +26,14 @@ class Breed(db.Model, SoftDeleteMixin, TimestampMixin):
     average_lifespan = db.Column(db.String(20))
     average_weight = db.Column(db.String(20))
 
+    species = db.relationship('Species', back_populates='breeds')
+    pets = db.relationship('Pet', back_populates='breed', lazy='dynamic')
+
     def __repr__(self):
         return f'<Breed {self.name}>'
 
 
-class Pet(db.Model, SoftDeleteMixin, TimestampMixin):
+class Pet(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'pets'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -46,19 +50,20 @@ class Pet(db.Model, SoftDeleteMixin, TimestampMixin):
     insurance_number = db.Column(db.String(50))
     notes = db.Column(db.Text)
 
-    owner = db.relationship('Owner', backref=db.backref('pets', lazy='dynamic'))
-    species = db.relationship('Species', backref=db.backref('pets', lazy='dynamic'))
-    breed = db.relationship('Breed', backref=db.backref('pets', lazy='dynamic'))
-    medical_records = db.relationship('MedicalRecord', backref='pet', lazy='dynamic')
-    appointments = db.relationship('Appointment', backref='pet', lazy='dynamic')
-    vaccination_records = db.relationship('VaccinationRecord', backref='pet', lazy='dynamic')
-    allergies = db.relationship('Allergy', backref='pet', lazy='dynamic')
+    owner = db.relationship('Owner', back_populates='pets')
+    species = db.relationship('Species', back_populates='pets')
+    breed = db.relationship('Breed', back_populates='pets')
+    medical_records = db.relationship('MedicalRecord', back_populates='pet', lazy='dynamic')
+    appointments = db.relationship('Appointment', back_populates='pet', lazy='dynamic')
+    vaccination_records = db.relationship('VaccinationRecord', back_populates='pet', lazy='dynamic')
+    deworming_records = db.relationship('DewormingRecord', back_populates='pet', lazy='dynamic')
+    allergies = db.relationship('Allergy', back_populates='pet', lazy='dynamic')
 
     def __repr__(self):
         return f'<Pet {self.name}>'
 
 
-class Allergy(db.Model, SoftDeleteMixin, TimestampMixin):
+class Allergy(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'allergies'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -68,6 +73,8 @@ class Allergy(db.Model, SoftDeleteMixin, TimestampMixin):
     reaction = db.Column(db.Text)
     diagnosed_date = db.Column(db.Date)
     notes = db.Column(db.Text)
+
+    pet = db.relationship('Pet', back_populates='allergies')
 
     def __repr__(self):
         return f'<Allergy {self.allergen}>'

@@ -1,17 +1,17 @@
-from datetime import datetime, date
+from datetime import UTC, datetime
 
 from app.extensions import db
 from app.models.base import SoftDeleteMixin, TimestampMixin
 
 
-class MedicalRecord(db.Model, SoftDeleteMixin, TimestampMixin):
+class MedicalRecord(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'medical_records'
 
     id = db.Column(db.Integer, primary_key=True)
     pet_id = db.Column(db.Integer, db.ForeignKey('pets.id'), nullable=False)
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'))
     doctor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    visit_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    visit_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC), nullable=False)
     chief_complaint = db.Column(db.Text)
     examination_notes = db.Column(db.Text)
     temperature = db.Column(db.Float)
@@ -23,9 +23,9 @@ class MedicalRecord(db.Model, SoftDeleteMixin, TimestampMixin):
     follow_up_notes = db.Column(db.Text)
 
     # Relationships
-    pet = db.relationship('Pet', backref=db.backref('medical_records', lazy='dynamic'))
+    pet = db.relationship('Pet', back_populates='medical_records')
     doctor = db.relationship('User', backref=db.backref('medical_records', lazy='dynamic'))
-    appointment = db.relationship('Appointment', backref=db.backref('medical_record', uselist=False))
+    appointment = db.relationship('Appointment', back_populates='medical_records')
     diagnoses = db.relationship('MedicalRecordDiagnosis', backref='medical_record', lazy='dynamic',
                                 cascade='all, delete-orphan')
     treatments = db.relationship('Treatment', backref='medical_record', lazy='dynamic',
@@ -37,7 +37,7 @@ class MedicalRecord(db.Model, SoftDeleteMixin, TimestampMixin):
         return f'<MedicalRecord {self.id} - Pet {self.pet_id}>'
 
 
-class Diagnosis(db.Model, SoftDeleteMixin, TimestampMixin):
+class Diagnosis(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'diagnoses'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -69,7 +69,7 @@ class MedicalRecordDiagnosis(db.Model):
         return f'<MedicalRecordDiagnosis Record:{self.medical_record_id} Diagnosis:{self.diagnosis_id}>'
 
 
-class Treatment(db.Model, SoftDeleteMixin, TimestampMixin):
+class Treatment(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'treatments'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -88,13 +88,13 @@ class Treatment(db.Model, SoftDeleteMixin, TimestampMixin):
         return f'<Treatment {self.id} - {self.treatment_type}>'
 
 
-class Prescription(db.Model, SoftDeleteMixin, TimestampMixin):
+class Prescription(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'prescriptions'
 
     id = db.Column(db.Integer, primary_key=True)
     medical_record_id = db.Column(db.Integer, db.ForeignKey('medical_records.id'), nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    prescription_date = db.Column(db.DateTime, default=datetime.utcnow)
+    prescription_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     status = db.Column(db.String(20), default='Active')
     notes = db.Column(db.Text)
 
@@ -107,7 +107,7 @@ class Prescription(db.Model, SoftDeleteMixin, TimestampMixin):
         return f'<Prescription {self.id} - Record {self.medical_record_id}>'
 
 
-class PrescriptionItem(db.Model, TimestampMixin):
+class PrescriptionItem(TimestampMixin, db.Model):
     __tablename__ = 'prescription_items'
 
     id = db.Column(db.Integer, primary_key=True)

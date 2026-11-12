@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Lab Order #{{ order.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <a href="{{ url_for('laboratory.index') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <h3 class="fw-bold mb-0">Lab Order #{{ order.id }}</h3>
+      <span class="badge {% if order.status == 'Completed' %}bg-success{% else %}bg-info text-dark{% endif %}">
+        {{ order.status }}
+      </span>
+    </div>
+
+    <a href="{{ url_for('pets.view', id=order.pet.id) }}" class="btn btn-outline-primary">
+      <i class="bi bi-folder2 me-1"></i> Patient Dossier
+    </a>
+  </div>
+
+  <div class="row g-4">
+    <!-- Order Overview -->
+    <div class="col-lg-5">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+          <h5 class="fw-bold mb-0 text-primary"><i class="bi bi-info-circle me-2"></i> Requisition Information</h5>
+        </div>
+        <div class="card-body">
+          <table class="table table-sm table-bordered">
+            <tr><th class="w-40 text-muted">Patient:</th><td><a href="{{ url_for('pets.view', id=order.pet.id) }}" class="fw-bold text-decoration-none">{{ order.pet.name }}</a></td></tr>
+            <tr><th class="text-muted">Ordering Doctor:</th><td>Dr. {{ order.doctor.first_name }} {{ order.doctor.last_name }}</td></tr>
+            <tr><th class="text-muted">Order Date:</th><td>{{ order.order_date.strftime('%b %d, %Y at %H:%M') }}</td></tr>
+            <tr><th class="text-muted">Clinical Priority:</th><td><span class="badge bg-secondary">{{ order.priority }}</span></td></tr>
+            <tr><th class="text-muted">Clinical Indications:</th><td>{{ order.notes or 'None specified' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Items & Results Form -->
+    <div class="col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white py-3">
+          <h5 class="fw-bold mb-0 text-success"><i class="bi bi-file-earmark-check me-2"></i> Diagnostic Findings & Results</h5>
+        </div>
+        <div class="card-body p-4">
+          {% for item in order.items %}
+          <div class="border rounded p-3 mb-4 bg-light">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div>
+                <h5 class="fw-bold mb-0">{{ item.lab_test.name }}</h5>
+                <span class="badge bg-light text-dark border">{{ item.lab_test.category }} &bull; Sample: {{ item.lab_test.sample_type or 'General' }}</span>
+              </div>
+              <div>
+                <span class="badge bg-secondary">Normal Range: {{ item.lab_test.normal_range or 'N/A' }} {{ item.lab_test.unit or '' }}</span>
+              </div>
+            </div>
+
+            {% if item.result %}
+              <!-- Existing Result Display -->
+              <div class="border-top pt-3 mt-3">
+                <div class="d-flex align-items-center mb-2">
+                  <span class="badge {% if item.result.is_abnormal %}bg-danger{% else %}bg-success{% endif %} me-2">
+                    {{ 'ABNORMAL / CRITICAL' if item.result.is_abnormal else 'NORMAL' }}
+                  </span>
+                  {% if item.result.result_value %}
+                    <span class="fw-bold fs-6 font-monospace me-2">{{ item.result.result_value }}</span>
+                  {% endif %}
+                  <small class="text-muted">Reported on {{ item.result.result_date.strftime('%b %d, %Y') if item.result.result_date else 'Recently' }}</small>
+                </div>
+                <p class="mb-1 text-dark"><strong>Pathologist Interpretation:</strong> {{ item.result.result_text }}</p>
+                {% if item.result.notes %}
+                  <p class="small text-muted mb-0"><strong>Notes:</strong> {{ item.result.notes }}</p>
+                {% endif %}
+              </div>
+            {% else %}
+              <!-- Result Input Form -->
+              <div class="border-top pt-3 mt-3">
+                <h6 class="fw-bold text-primary mb-2"><i class="bi bi-pencil-square me-1"></i> Enter Laboratory Findings</h6>
+                <form method="POST" action="{{ url_for('laboratory.record_result', item_id=item.id) }}">
+                  {{ result_form.hidden_tag() }}
+                  <div class="row g-2 mb-2">
+                    <div class="col-md-6">
+                      {{ result_form.result_value.label(class="form-label small fw-semibold") }}
+                      {{ result_form.result_value(class="form-control form-control-sm", placeholder="e.g. 14.2 g/dL") }}
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                      <div class="form-check pb-2">
+                        {{ result_form.is_abnormal(class="form-check-input", id="abnormalCheck" ~ item.id) }}
+                        {{ result_form.is_abnormal.label(class="form-check-label small fw-bold text-danger", for="abnormalCheck" ~ item.id) }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mb-2">
+                    {{ result_form.result_text.label(class="form-label small fw-semibold") }}
+                    {{ result_form.result_text(class="form-control form-control-sm", rows=2, placeholder="Detailed microscopic or biochemical observations...") }}
+                  </div>
+                  <div class="mb-3">
+                    {{ result_form.notes.label(class="form-label small fw-semibold") }}
+                    {{ result_form.notes(class="form-control form-control-sm", placeholder="Technician comments / equipment ID") }}
+                  </div>
+                  <button type="submit" class="btn btn-sm btn-success">
+                    <i class="bi bi-check2-circle me-1"></i> Save & Certify Report
+                  </button>
+                </form>
+              </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

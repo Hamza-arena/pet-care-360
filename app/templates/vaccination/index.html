@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% import "macros/pagination.html" as pg %}
+{% block title %}Vaccines & Deworming{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h3 class="fw-bold mb-1">Preventive Healthcare & Immunization</h3>
+      <p class="text-muted small mb-0">Manage core canine/feline vaccine schedules, rabies certificates, and parasite control.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('vaccination.create_deworming') }}" class="btn btn-outline-success">
+        <i class="bi bi-shield me-1"></i> Record Dewormer
+      </a>
+      <a href="{{ url_for('vaccination.create') }}" class="btn btn-primary shadow-sm">
+        <i class="bi bi-shield-plus me-1"></i> Record Vaccination
+      </a>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-body p-2">
+      <ul class="nav nav-pills">
+        <li class="nav-item">
+          <a class="nav-link {% if current_tab == 'vaccines' %}active{% endif %}" href="{{ url_for('vaccination.index', tab='vaccines') }}">
+            <i class="bi bi-shield-check me-1"></i> Vaccination Records
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if current_tab == 'deworming' %}active{% endif %}" href="{{ url_for('vaccination.index', tab='deworming') }}">
+            <i class="bi bi-capsule me-1"></i> Deworming Records
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if current_tab == 'reminders' %}active{% endif %}" href="{{ url_for('vaccination.index', tab='reminders') }}">
+            <i class="bi bi-bell-fill me-1"></i> Booster Reminders
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      {% if pagination.items %}
+      <div class="table-responsive">
+        {% if current_tab == 'deworming' %}
+          <!-- Deworming Table -->
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Patient</th>
+                <th>Owner</th>
+                <th>Medication</th>
+                <th>Administration Date</th>
+                <th>Dosage</th>
+                <th>Next Due Date</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in pagination.items %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('pets.view', id=d.pet.id) }}" class="fw-bold text-dark text-decoration-none">
+                    {{ d.pet.name }}
+                  </a> ({{ d.pet.species.name }})
+                </td>
+                <td>{{ d.pet.owner.full_name }}</td>
+                <td class="fw-semibold">{{ d.medication_name }}</td>
+                <td>{{ d.administration_date.strftime('%b %d, %Y') }}</td>
+                <td>{{ d.dosage or 'Standard' }}</td>
+                <td>
+                  {% if d.next_due_date %}
+                    <span class="badge bg-warning text-dark">{{ d.next_due_date.strftime('%b %d, %Y') }}</span>
+                  {% else %}—{% endif %}
+                </td>
+                <td class="small text-muted">{{ d.notes or '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% elif current_tab == 'reminders' %}
+          <!-- Reminders Table -->
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Patient</th>
+                <th>Owner & Contact</th>
+                <th>Vaccine</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for rem in pagination.items %}
+              <tr>
+                <td class="fw-semibold">
+                  <a href="{{ url_for('pets.view', id=rem.pet.id) }}" class="text-dark text-decoration-none">
+                    {{ rem.pet.name }}
+                  </a>
+                </td>
+                <td>{{ rem.pet.owner.full_name }} &bull; {{ rem.pet.owner.phone }}</td>
+                <td>{{ rem.vaccine.name }}</td>
+                <td class="fw-bold text-danger">{{ rem.reminder_date.strftime('%b %d, %Y') }}</td>
+                <td><span class="badge bg-secondary">{{ rem.status }}</span></td>
+                <td>{{ rem.notes or 'Routine Booster' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <!-- Vaccination Table -->
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Patient</th>
+                <th>Owner</th>
+                <th>Vaccine</th>
+                <th>Dose #</th>
+                <th>Date Given</th>
+                <th>Lot / Batch</th>
+                <th>Next Booster Due</th>
+                <th>Administered By</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for v in pagination.items %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('pets.view', id=v.pet.id) }}" class="fw-bold text-dark text-decoration-none">
+                    {{ v.pet.name }}
+                  </a> ({{ v.pet.species.name }})
+                </td>
+                <td>{{ v.pet.owner.full_name }}</td>
+                <td class="fw-semibold">{{ v.vaccine.name }}</td>
+                <td>Dose {{ v.dose_number }}</td>
+                <td>{{ v.administration_date.strftime('%b %d, %Y') }}</td>
+                <td class="font-monospace small">{{ v.batch_number or '—' }}</td>
+                <td>
+                  {% if v.next_due_date %}
+                    <span class="badge bg-warning-subtle text-dark border border-warning-subtle">
+                      {{ v.next_due_date.strftime('%b %d, %Y') }}
+                    </span>
+                  {% else %}—{% endif %}
+                </td>
+                <td>Dr. {{ v.doctor.last_name }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
+      </div>
+      {{ pg.render_pagination(pagination, 'vaccination.index', tab=current_tab) }}
+      {% else %}
+      <div class="text-center py-5 text-muted">No records found for {{ current_tab }}.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+

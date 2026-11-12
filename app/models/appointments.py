@@ -1,10 +1,10 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.extensions import db
 from app.models.base import SoftDeleteMixin, TimestampMixin
 
 
-class AppointmentType(db.Model, SoftDeleteMixin, TimestampMixin):
+class AppointmentType(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'appointment_types'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -19,7 +19,7 @@ class AppointmentType(db.Model, SoftDeleteMixin, TimestampMixin):
         return f'<AppointmentType {self.name}>'
 
 
-class Appointment(db.Model, SoftDeleteMixin, TimestampMixin):
+class Appointment(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'appointments'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -34,7 +34,7 @@ class Appointment(db.Model, SoftDeleteMixin, TimestampMixin):
     notes = db.Column(db.Text)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
 
-    pet = db.relationship('Pet', backref=db.backref('appointments', lazy='dynamic'))
+    pet = db.relationship('Pet', back_populates='appointments')
     doctor = db.relationship('User', foreign_keys=[doctor_id], backref=db.backref('doctor_appointments', lazy='dynamic'))
     clinic = db.relationship('Clinic', backref=db.backref('appointments', lazy='dynamic'))
     appointment_type = db.relationship('AppointmentType', back_populates='appointments')
@@ -55,7 +55,7 @@ class AppointmentStatusHistory(db.Model):
     old_status = db.Column(db.String(20))
     new_status = db.Column(db.String(20), nullable=False)
     changed_by = db.Column(db.Integer, db.ForeignKey('users.id'))
-    changed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    changed_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     notes = db.Column(db.Text)
 
     appointment = db.relationship('Appointment', back_populates='status_history')
@@ -65,13 +65,13 @@ class AppointmentStatusHistory(db.Model):
         return f'<AppointmentStatusHistory {self.old_status} -> {self.new_status}>'
 
 
-class QueueToken(db.Model, TimestampMixin):
+class QueueToken(TimestampMixin, db.Model):
     __tablename__ = 'queue_tokens'
 
     id = db.Column(db.Integer, primary_key=True)
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'), nullable=False)
     token_number = db.Column(db.String(10), nullable=False)
-    issued_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    issued_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     called_at = db.Column(db.DateTime)
     completed_at = db.Column(db.DateTime)
     status = db.Column(db.String(20), default='Waiting')

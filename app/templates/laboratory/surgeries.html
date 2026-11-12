@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% import "macros/pagination.html" as pg %}
+{% block title %}Surgical Suites & Procedures{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h3 class="fw-bold mb-1">Operating Theater & Surgical Schedule</h3>
+      <p class="text-muted small mb-0">Monitor pre-op preparation, surgical procedures, and post-op anesthesia recovery.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('laboratory.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-moisture me-1"></i> Lab Tests
+      </a>
+      <a href="{{ url_for('laboratory.create_surgery') }}" class="btn btn-primary shadow-sm">
+        <i class="bi bi-plus-circle me-1"></i> Schedule Surgery
+      </a>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      {% if pagination.items %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Procedure</th>
+              <th>Patient</th>
+              <th>Surgeon</th>
+              <th>Room / Suite</th>
+              <th>Scheduled Time</th>
+              <th>Anesthesia</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in pagination.items %}
+            <tr>
+              <td class="fw-bold text-dark">{{ s.surgery_type }}</td>
+              <td>
+                <a href="{{ url_for('pets.view', id=s.pet.id) }}" class="fw-semibold text-decoration-none">
+                  {{ s.pet.name }}
+                </a> ({{ s.pet.species.name }})
+              </td>
+              <td>Dr. {{ s.doctor.last_name }}</td>
+              <td>{{ s.room.room_number if s.room else 'Main OR' }}</td>
+              <td>{{ s.scheduled_date.strftime('%b %d, %Y at %H:%M') }}</td>
+              <td><span class="badge bg-light text-dark border">{{ s.anesthesia_type or 'General' }}</span></td>
+              <td>
+                {% if s.status == 'Completed' %}
+                  <span class="badge bg-success">Completed</span>
+                {% elif s.status == 'In-Progress' %}
+                  <span class="badge bg-warning text-dark">In Progress</span>
+                {% else %}
+                  <span class="badge bg-primary">Scheduled</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {{ pg.render_pagination(pagination, 'laboratory.surgeries') }}
+      {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-heart-pulse fs-1 text-secondary mb-2 d-block"></i>
+        <p>No surgical procedures scheduled.</p>
+        <a href="{{ url_for('laboratory.create_surgery') }}" class="btn btn-sm btn-primary">Schedule Surgery</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+

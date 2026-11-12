@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% import "macros/pagination.html" as pg %}
+{% block title %}Pharmacy Stock Ledger{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h3 class="fw-bold mb-1">Pharmacy Stock Movements & Audit Ledger</h3>
+      <p class="text-muted small mb-0">Complete historical trail of inventory received, dispensed, adjusted, and expired.</p>
+    </div>
+    <a href="{{ url_for('pharmacy.index') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Back to Pharmacy
+    </a>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      {% if pagination.items %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Timestamp</th>
+              <th>Type</th>
+              <th>Medication</th>
+              <th>Batch / Lot</th>
+              <th>Quantity</th>
+              <th>Reason / Reference</th>
+              <th>Performed By</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in pagination.items %}
+            <tr>
+              <td class="small">{{ m.movement_date.strftime('%b %d, %Y at %H:%M') }}</td>
+              <td>
+                {% if m.movement_type == 'IN' %}
+                  <span class="badge bg-success"><i class="bi bi-arrow-down-left"></i> IN (Received)</span>
+                {% elif m.movement_type == 'OUT' %}
+                  <span class="badge bg-danger"><i class="bi bi-arrow-up-right"></i> OUT (Dispensed)</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ m.movement_type }}</span>
+                {% endif %}
+              </td>
+              <td class="fw-semibold">
+                <a href="{{ url_for('pharmacy.view', id=m.medicine.id) }}" class="text-dark text-decoration-none">
+                  {{ m.medicine.name }}
+                </a>
+              </td>
+              <td class="font-monospace small">{{ m.batch.batch_number if m.batch else '—' }}</td>
+              <td class="fw-bold font-monospace">{{ m.quantity }}</td>
+              <td>{{ m.reference_type or 'General' }}</td>
+              <td>{{ m.performed_by_user.username if m.performed_by_user else 'System' }}</td>
+              <td class="small text-muted">{{ m.notes or '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {{ pg.render_pagination(pagination, 'pharmacy.movements') }}
+      {% else %}
+      <div class="text-center py-5 text-muted">No stock movements recorded in the ledger yet.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+

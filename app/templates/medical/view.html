@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}Medical Chart #{{ record.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <a href="{{ url_for('medical.index') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <h3 class="fw-bold mb-0">Clinical Chart #{{ record.id }}</h3>
+      <span class="badge bg-primary">{{ record.visit_date.strftime('%B %d, %Y') }}</span>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('pets.view', id=record.pet.id) }}" class="btn btn-outline-primary">
+        <i class="bi bi-folder2-open me-1"></i> Patient Dossier
+      </a>
+      <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteRecModal">
+        <i class="bi bi-trash3"></i> Delete
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Column: Examination Details & Vitals -->
+    <div class="col-lg-7">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+          <h5 class="fw-bold mb-0 text-primary"><i class="bi bi-activity me-2"></i> Patient Examination Findings</h5>
+        </div>
+        <div class="card-body">
+          <table class="table table-bordered mb-3">
+            <tr>
+              <th class="w-35 text-muted">Patient Pet:</th>
+              <td>
+                <a href="{{ url_for('pets.view', id=record.pet.id) }}" class="fw-bold text-decoration-none">
+                  {{ record.pet.name }}
+                </a> ({{ record.pet.species.name }})
+              </td>
+            </tr>
+            <tr>
+              <th class="text-muted">Owner:</th>
+              <td>{{ record.pet.owner.full_name }} &bull; {{ record.pet.owner.phone }}</td>
+            </tr>
+            <tr>
+              <th class="text-muted">Attending Doctor:</th>
+              <td>Dr. {{ record.doctor.first_name }} {{ record.doctor.last_name }}</td>
+            </tr>
+            <tr>
+              <th class="text-muted">Chief Complaint:</th>
+              <td><strong>{{ record.chief_complaint or 'N/A' }}</strong></td>
+            </tr>
+            <tr>
+              <th class="text-muted">Physical Exam Notes:</th>
+              <td>{{ record.examination_notes or 'No specific abnormalities noted on physical inspection.' }}</td>
+            </tr>
+          </table>
+
+          <h6 class="fw-bold small text-muted text-uppercase mb-2">Recorded Vital Signs</h6>
+          <div class="row g-2 text-center mb-4">
+            <div class="col-3">
+              <div class="border rounded p-2 bg-light">
+                <div class="text-muted small">Body Temp</div>
+                <div class="fw-bold">{{ record.temperature ~ ' °C' if record.temperature else '—' }}</div>
+              </div>
+            </div>
+            <div class="col-3">
+              <div class="border rounded p-2 bg-light">
+                <div class="text-muted small">Weight</div>
+                <div class="fw-bold">{{ record.weight ~ ' kg' if record.weight else '—' }}</div>
+              </div>
+            </div>
+            <div class="col-3">
+              <div class="border rounded p-2 bg-light">
+                <div class="text-muted small">Heart Rate</div>
+                <div class="fw-bold">{{ record.heart_rate ~ ' bpm' if record.heart_rate else '—' }}</div>
+              </div>
+            </div>
+            <div class="col-3">
+              <div class="border rounded p-2 bg-light">
+                <div class="text-muted small">BP</div>
+                <div class="fw-bold">{{ record.blood_pressure or '—' }}</div>
+              </div>
+            </div>
+          </div>
+
+          <h6 class="fw-bold small text-muted text-uppercase mb-2">Diagnoses</h6>
+          <div class="mb-3">
+            {% for d in record.diagnoses %}
+              <div class="p-2 border rounded mb-2 bg-primary-subtle text-primary fw-semibold">
+                <i class="bi bi-tag-fill me-1"></i> {{ d.diagnosis.name }} (Code: {{ d.diagnosis.code or 'N/A' }})
+              </div>
+            {% else %}
+              <p class="text-muted small">No specific diagnosis coded.</p>
+            {% endfor %}
+          </div>
+
+          <h6 class="fw-bold small text-muted text-uppercase mb-2">Treatments Administered</h6>
+          <div>
+            {% for t in record.treatments %}
+              <div class="p-2 border rounded mb-2">
+                <strong>{{ t.treatment_type }}:</strong> {{ t.description }}
+                {% if t.dosage %}<div class="small text-muted">Dosage: {{ t.dosage }} &bull; Frequency: {{ t.frequency }}</div>{% endif %}
+              </div>
+            {% else %}
+              <p class="text-muted small">No immediate clinic interventions recorded.</p>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Prescriptions -->
+    <div class="col-lg-5">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h5 class="fw-bold mb-0 text-success"><i class="bi bi-prescription2 me-2"></i> Prescription Chart</h5>
+          <button class="btn btn-sm btn-success" data-bs-toggle="collapse" data-bs-target="#addRxForm">
+            <i class="bi bi-plus"></i> Add Med
+          </button>
+        </div>
+        <div class="card-body">
+          <!-- Add Medication Collapse Form -->
+          <div class="collapse mb-4 border rounded p-3 bg-light" id="addRxForm">
+            <h6 class="fw-bold mb-3">Prescribe Medication</h6>
+            <form method="POST" action="{{ url_for('medical.add_prescription_item', id=record.id) }}">
+              {{ rx_form.hidden_tag() }}
+              <div class="mb-2">
+                {{ rx_form.medicine_id.label(class="form-label small fw-semibold") }}
+                {{ rx_form.medicine_id(class="form-select form-select-sm") }}
+              </div>
+              <div class="row g-2 mb-2">
+                <div class="col-6">
+                  {{ rx_form.dosage.label(class="form-label small fw-semibold") }}
+                  {{ rx_form.dosage(class="form-control form-control-sm", placeholder="e.g. 250mg") }}
+                </div>
+                <div class="col-6">
+                  {{ rx_form.frequency.label(class="form-label small fw-semibold") }}
+                  {{ rx_form.frequency(class="form-control form-control-sm", placeholder="e.g. BID (2x/day)") }}
+                </div>
+              </div>
+              <div class="row g-2 mb-2">
+                <div class="col-6">
+                  {{ rx_form.duration.label(class="form-label small fw-semibold") }}
+                  {{ rx_form.duration(class="form-control form-control-sm", placeholder="e.g. 5 days") }}
+                </div>
+                <div class="col-6">
+                  {{ rx_form.quantity.label(class="form-label small fw-semibold") }}
+                  {{ rx_form.quantity(class="form-control form-control-sm", value=10) }}
+                </div>
+              </div>
+              <div class="mb-3">
+                {{ rx_form.instructions.label(class="form-label small fw-semibold") }}
+                {{ rx_form.instructions(class="form-control form-control-sm", placeholder="Give with food...") }}
+              </div>
+              {{ rx_form.submit(class="btn btn-sm btn-success w-100") }}
+            </form>
+          </div>
+
+          <!-- Active Prescriptions List -->
+          {% if active_rx and active_rx.items.count() > 0 %}
+          <div class="list-group list-group-flush">
+            {% for item in active_rx.items %}
+            <div class="list-group-item px-0 py-2">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-dark">{{ item.medicine.name }}</h6>
+                <span class="badge bg-secondary font-monospace">Qty: {{ item.quantity }}</span>
+              </div>
+              <div class="small text-muted">
+                {{ item.dosage }} &bull; {{ item.frequency }} {% if item.duration %}&bull; for {{ item.duration }}{% endif %}
+              </div>
+              {% if item.instructions %}
+              <div class="small text-secondary fst-italic mt-1">{{ item.instructions }}</div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center py-4 text-muted small">
+            No medications prescribed yet for this consultation. Click <strong>+ Add Med</strong> above.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Soft Delete Modal -->
+<div class="modal fade" id="deleteRecModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="bi bi-trash3 me-2"></i> Soft Delete Medical Record</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Move clinical chart <strong>#{{ record.id }}</strong> for <strong>{{ record.pet.name }}</strong> to the Recycle Bin?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form method="POST" action="{{ url_for('medical.delete', id=record.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger">Move to Recycle Bin</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+{% block title %}Pet Dossier: {{ pet.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Patient Header Bar -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-3">
+      <a href="{{ url_for('pets.index') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; font-size: 1.5rem;">
+        🐾
+      </div>
+      <div>
+        <h3 class="fw-bold mb-0">
+          {{ pet.name }}
+          <span class="badge bg-light text-dark border fs-6 ms-2">{{ pet.species.name }} &bull; {{ pet.breed.name if pet.breed else 'Mixed' }}</span>
+        </h3>
+        <p class="text-muted small mb-0">
+          Owner: <a href="{{ url_for('owners.view', id=pet.owner.id) }}" class="text-primary text-decoration-none fw-semibold">{{ pet.owner.full_name }}</a>
+          &bull; Phone: {{ pet.owner.phone }}
+          &bull; Microchip: <code>{{ pet.microchip_number or 'None' }}</code>
+        </p>
+      </div>
+    </div>
+
+    <!-- Quick Action Toolbar -->
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{{ url_for('medical.create', pet_id=pet.id) }}" class="btn btn-primary shadow-sm">
+        <i class="bi bi-stethoscope me-1"></i> New Consultation
+      </a>
+      <a href="{{ url_for('appointments.create', pet_id=pet.id) }}" class="btn btn-outline-primary">
+        <i class="bi bi-calendar-plus me-1"></i> Book Visit
+      </a>
+      <a href="{{ url_for('vaccination.create', pet_id=pet.id) }}" class="btn btn-outline-success">
+        <i class="bi bi-shield-plus me-1"></i> Vaccinate
+      </a>
+      <a href="{{ url_for('laboratory.create_order', pet_id=pet.id) }}" class="btn btn-outline-info">
+        <i class="bi bi-moisture me-1"></i> Lab Order
+      </a>
+      <a href="{{ url_for('pets.edit', id=pet.id) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-pencil"></i>
+      </a>
+      <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePetModal">
+        <i class="bi bi-trash3"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Known Allergies Alert Banner -->
+  <div class="alert {% if allergies %}alert-danger{% else %}alert-light border{% endif %} d-flex justify-content-between align-items-center mb-4 py-2">
+    <div>
+      <i class="bi bi-exclamation-octagon-fill me-2 {% if allergies %}text-danger{% else %}text-secondary{% endif %}"></i>
+      <strong>Known Allergies:</strong>
+      {% if allergies %}
+        {% for a in allergies %}
+          <span class="badge bg-danger ms-1">{{ a.allergen }} ({{ a.severity }})</span>
+        {% endfor %}
+      {% else %}
+        <span class="text-muted">No known drug or environmental allergies flagged.</span>
+      {% endif %}
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#addAllergyModal">
+      <i class="bi bi-plus-circle me-1"></i> Flag Allergy
+    </button>
+  </div>
+
+  <!-- Main Patient Tabs -->
+  <div class="card shadow-sm">
+    <div class="card-header bg-white p-0">
+      <ul class="nav nav-tabs card-header-tabs m-0 px-3 border-0" id="petTabs" role="tablist">
+        <li class="nav-item">
+          <button class="nav-link active py-3 fw-semibold" id="medical-tab" data-bs-toggle="tab" data-bs-target="#medicalTab" type="button" role="tab">
+            <i class="bi bi-file-medical-fill text-primary me-1"></i> Medical Visits ({{ medical_records|length }})
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link py-3 fw-semibold" id="vaccine-tab" data-bs-toggle="tab" data-bs-target="#vaccineTab" type="button" role="tab">
+            <i class="bi bi-shield-check text-success me-1"></i> Vaccines & Deworming ({{ vaccinations|length + dewormings|length }})
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link py-3 fw-semibold" id="lab-tab" data-bs-toggle="tab" data-bs-target="#labTab" type="button" role="tab">
+            <i class="bi bi-moisture text-info me-1"></i> Diagnostics & Labs ({{ lab_orders|length }})
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link py-3 fw-semibold" id="appointments-tab" data-bs-toggle="tab" data-bs-target="#appointmentsTab" type="button" role="tab">
+            <i class="bi bi-calendar-event text-secondary me-1"></i> Visits ({{ appointments|length }})
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link py-3 fw-semibold" id="bio-tab" data-bs-toggle="tab" data-bs-target="#bioTab" type="button" role="tab">
+            <i class="bi bi-info-circle text-muted me-1"></i> Patient Demographics
+          </button>
+        </li>
+      </ul>
+    </div>
+
+    <div class="card-body p-4">
+      <div class="tab-content" id="petTabsContent">
+        <!-- Tab 1: Medical Visits -->
+        <div class="tab-pane fade show active" id="medicalTab" role="tabpanel">
+          {% if medical_records %}
+            <div class="row g-3">
+              {% for rec in medical_records %}
+              <div class="col-12">
+                <div class="border rounded-3 p-3 bg-light bg-opacity-50">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                      <h5 class="fw-bold mb-0 text-dark">
+                        {{ rec.visit_date.strftime('%B %d, %Y') }}
+                        <small class="text-muted fw-normal fs-6">&bull; Attending: Dr. {{ rec.doctor.last_name }}</small>
+                      </h5>
+                    </div>
+                    <div>
+                      <a href="{{ url_for('medical.view', id=rec.id) }}" class="btn btn-sm btn-outline-primary">
+                        View Full Medical Chart &rarr;
+                      </a>
+                    </div>
+                  </div>
+
+                  <div class="row g-2 small mb-2">
+                    <div class="col-sm-3"><strong>Chief Complaint:</strong> {{ rec.chief_complaint or 'N/A' }}</div>
+                    <div class="col-sm-2"><strong>Temp:</strong> {{ rec.temperature ~ ' °C' if rec.temperature else '—' }}</div>
+                    <div class="col-sm-2"><strong>Weight:</strong> {{ rec.weight ~ ' kg' if rec.weight else '—' }}</div>
+                    <div class="col-sm-2"><strong>Heart Rate:</strong> {{ rec.heart_rate ~ ' bpm' if rec.heart_rate else '—' }}</div>
+                    <div class="col-sm-3"><strong>BP:</strong> {{ rec.blood_pressure or '—' }}</div>
+                  </div>
+
+                  {% if rec.examination_notes %}
+                  <p class="small text-muted mb-2"><strong>Exam Findings:</strong> {{ rec.examination_notes }}</p>
+                  {% endif %}
+
+                  <!-- Diagnoses list -->
+                  {% if rec.diagnoses.count() > 0 %}
+                  <div class="mb-2">
+                    <strong class="small text-muted">Diagnoses:</strong>
+                    {% for d in rec.diagnoses %}
+                      <span class="badge bg-primary-subtle text-primary border border-primary-subtle">{{ d.diagnosis.name }}</span>
+                    {% endfor %}
+                  </div>
+                  {% endif %}
+
+                  <!-- Prescriptions -->
+                  {% for rx in rec.prescriptions if not rx.is_deleted %}
+                    <div class="border-top pt-2 mt-2">
+                      <strong class="small text-muted"><i class="bi bi-capsule me-1"></i> Prescribed Medications:</strong>
+                      <ul class="list-inline mb-0 mt-1">
+                        {% for item in rx.items %}
+                          <li class="list-inline-item badge bg-white text-dark border p-2">
+                            <strong>{{ item.medicine.name }}</strong> ({{ item.dosage }}, {{ item.frequency }}) &times; {{ item.quantity }}
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center py-5 text-muted">
+              <i class="bi bi-journal-x fs-1 d-block mb-2 text-secondary"></i>
+              <p class="mb-2">No clinical consultation records on file for {{ pet.name }}.</p>
+              <a href="{{ url_for('medical.create', pet_id=pet.id) }}" class="btn btn-sm btn-primary">Start Consultation</a>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Tab 2: Vaccines & Deworming -->
+        <div class="tab-pane fade" id="vaccineTab" role="tabpanel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0">Immunization & Parasite Control History</h5>
+            <div class="d-flex gap-2">
+              <a href="{{ url_for('vaccination.create', pet_id=pet.id) }}" class="btn btn-sm btn-success">
+                <i class="bi bi-plus"></i> Record Vaccine
+              </a>
+              <a href="{{ url_for('vaccination.create_deworming', pet_id=pet.id) }}" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-plus"></i> Record Dewormer
+              </a>
+            </div>
+          </div>
+
+          <h6 class="fw-bold text-muted small text-uppercase mb-2">Vaccinations</h6>
+          {% if vaccinations %}
+          <div class="table-responsive mb-4">
+            <table class="table table-sm table-bordered">
+              <thead class="table-light">
+                <tr>
+                  <th>Vaccine</th>
+                  <th>Administered Date</th>
+                  <th>Dose #</th>
+                  <th>Batch / Lot</th>
+                  <th>Next Booster Due</th>
+                  <th>Doctor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for v in vaccinations %}
+                <tr>
+                  <td class="fw-semibold">{{ v.vaccine.name }}</td>
+                  <td>{{ v.administration_date.strftime('%b %d, %Y') }}</td>
+                  <td>Dose {{ v.dose_number }}</td>
+                  <td class="font-monospace small">{{ v.batch_number or '—' }}</td>
+                  <td>
+                    {% if v.next_due_date %}
+                      <span class="badge bg-warning-subtle text-dark border border-warning-subtle">
+                        {{ v.next_due_date.strftime('%b %d, %Y') }}
+                      </span>
+                    {% else %}—{% endif %}
+                  </td>
+                  <td>Dr. {{ v.doctor.last_name }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-muted small">No vaccination records on file.</p>
+          {% endif %}
+
+          <h6 class="fw-bold text-muted small text-uppercase mb-2">Deworming Treatments</h6>
+          {% if dewormings %}
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered">
+              <thead class="table-light">
+                <tr>
+                  <th>Medication</th>
+                  <th>Date Given</th>
+                  <th>Dosage</th>
+                  <th>Next Due</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for d in dewormings %}
+                <tr>
+                  <td class="fw-semibold">{{ d.medication_name }}</td>
+                  <td>{{ d.administration_date.strftime('%b %d, %Y') }}</td>
+                  <td>{{ d.dosage or '—' }}</td>
+                  <td>{{ d.next_due_date.strftime('%b %d, %Y') if d.next_due_date else '—' }}</td>
+                  <td>{{ d.notes or '—' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-muted small">No deworming records on file.</p>
+          {% endif %}
+        </div>
+
+        <!-- Tab 3: Diagnostics & Labs -->
+        <div class="tab-pane fade" id="labTab" role="tabpanel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0">Laboratory Orders & Diagnostic Results</h5>
+            <a href="{{ url_for('laboratory.create_order', pet_id=pet.id) }}" class="btn btn-sm btn-info text-white">
+              <i class="bi bi-plus"></i> Order Lab Test
+            </a>
+          </div>
+
+          {% if lab_orders %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Order #</th>
+                  <th>Date</th>
+                  <th>Priority</th>
+                  <th>Test Name</th>
+                  <th>Status</th>
+                  <th>Result Findings</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for order in lab_orders %}
+                <tr>
+                  <td class="fw-semibold">#{{ order.id }}</td>
+                  <td>{{ order.order_date.strftime('%b %d, %Y') }}</td>
+                  <td>
+                    <span class="badge {% if order.priority == 'STAT' %}bg-danger{% elif order.priority == 'Urgent' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                      {{ order.priority }}
+                    </span>
+                  </td>
+                  <td>
+                    {% for item in order.items %}
+                      <div>{{ item.lab_test.name }}</div>
+                    {% endfor %}
+                  </td>
+                  <td>
+                    <span class="badge {% if order.status == 'Completed' %}bg-success{% else %}bg-info text-dark{% endif %}">
+                      {{ order.status }}
+                    </span>
+                  </td>
+                  <td>
+                    {% for item in order.items if item.result %}
+                      <div class="small">
+                        {% if item.result.is_abnormal %}
+                          <span class="badge bg-danger me-1">Abnormal</span>
+                        {% endif %}
+                        <strong>{{ item.result.result_value or '' }}</strong>: {{ item.result.result_text }}
+                      </div>
+                    {% else %}
+                      <span class="text-muted small">Pending lab report</span>
+                    {% endfor %}
+                  </td>
+                  <td class="text-end">
+                    <a href="{{ url_for('laboratory.view_order', id=order.id) }}" class="btn btn-sm btn-outline-secondary">
+                      View Order
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-4 text-muted small">No diagnostic lab orders for this patient.</div>
+          {% endif %}
+        </div>
+
+        <!-- Tab 4: Appointments -->
+        <div class="tab-pane fade" id="appointmentsTab" role="tabpanel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0">Scheduled & Past Visits</h5>
+            <a href="{{ url_for('appointments.create', pet_id=pet.id) }}" class="btn btn-sm btn-primary">
+              <i class="bi bi-calendar-plus"></i> Book Visit
+            </a>
+          </div>
+
+          {% if appointments %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Date & Time</th>
+                  <th>Service Type</th>
+                  <th>Doctor</th>
+                  <th>Status</th>
+                  <th>Reason</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for apt in appointments %}
+                <tr>
+                  <td class="fw-semibold">
+                    {{ apt.appointment_date.strftime('%b %d, %Y') }} at {{ apt.appointment_time.strftime('%I:%M %p') }}
+                  </td>
+                  <td>{{ apt.appointment_type.name }}</td>
+                  <td>Dr. {{ apt.doctor.last_name }}</td>
+                  <td><span class="badge bg-secondary">{{ apt.status }}</span></td>
+                  <td>{{ apt.reason }}</td>
+                  <td class="text-end">
+                    <a href="{{ url_for('appointments.view', id=apt.id) }}" class="btn btn-sm btn-outline-secondary">Details</a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-4 text-muted small">No appointments recorded.</div>
+          {% endif %}
+        </div>
+
+        <!-- Tab 5: Demographics -->
+        <div class="tab-pane fade" id="bioTab" role="tabpanel">
+          <table class="table table-bordered w-75">
+            <tr><th class="w-35 text-muted">Patient ID</th><td>#{{ pet.id }}</td></tr>
+            <tr><th class="text-muted">Registered Name</th><td><strong>{{ pet.name }}</strong></td></tr>
+            <tr><th class="text-muted">Species</th><td>{{ pet.species.name }}</td></tr>
+            <tr><th class="text-muted">Breed</th><td>{{ pet.breed.name if pet.breed else 'Mixed / Cross' }}</td></tr>
+            <tr><th class="text-muted">Gender</th><td>{{ pet.gender }}</td></tr>
+            <tr><th class="text-muted">Neutered / Spayed</th><td>{{ 'Yes' if pet.is_neutered else 'No' }}</td></tr>
+            <tr><th class="text-muted">Date of Birth</th><td>{{ pet.date_of_birth.strftime('%B %d, %Y') if pet.date_of_birth else 'Unknown' }}</td></tr>
+            <tr><th class="text-muted">Color / Markings</th><td>{{ pet.color or '—' }}</td></tr>
+            <tr><th class="text-muted">Current Weight</th><td>{{ pet.weight ~ ' kg' if pet.weight else '—' }}</td></tr>
+            <tr><th class="text-muted">Microchip RFID</th><td><code>{{ pet.microchip_number or 'Unchipped' }}</code></td></tr>
+            <tr><th class="text-muted">Insurance Policy</th><td>{{ pet.insurance_number or 'None' }}</td></tr>
+            <tr><th class="text-muted">Medical Notes</th><td>{{ pet.notes or 'None' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Allergy Modal -->
+<div class="modal fade" id="addAllergyModal" tabindex="-1" aria-labelledby="addAllergyModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="addAllergyModalLabel"><i class="bi bi-shield-exclamation me-2"></i> Record Patient Allergy</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('pets.add_allergy', id=pet.id) }}">
+        <div class="modal-body">
+          {{ allergy_form.hidden_tag() }}
+          <div class="mb-3">
+            {{ allergy_form.allergen.label(class="form-label fw-semibold small") }}
+            {{ allergy_form.allergen(class="form-control", placeholder="e.g. Penicillin, Chicken protein, Bee venom") }}
+          </div>
+          <div class="mb-3">
+            {{ allergy_form.severity.label(class="form-label fw-semibold small") }}
+            {{ allergy_form.severity(class="form-select") }}
+          </div>
+          <div class="mb-3">
+            {{ allergy_form.reaction.label(class="form-label fw-semibold small") }}
+            {{ allergy_form.reaction(class="form-control", rows=2, placeholder="e.g. Anaphylaxis, Facial swelling, Urticaria") }}
+          </div>
+          <div class="mb-3">
+            {{ allergy_form.diagnosed_date.label(class="form-label fw-semibold small") }}
+            {{ allergy_form.diagnosed_date(class="form-control") }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          {{ allergy_form.submit(class="btn btn-danger") }}
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Soft Delete Confirmation Modal -->
+<div class="modal fade" id="deletePetModal" tabindex="-1" aria-labelledby="deletePetModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="deletePetModalLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i> Soft Delete Pet</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to soft-delete <strong>{{ pet.name }}</strong>?</p>
+        <div class="alert alert-warning small">
+          <i class="bi bi-info-circle me-1"></i> <strong>Soft Delete Policy:</strong> {{ pet.name }} will be hidden from normal patient searches and queries and moved to the <strong>Admin Recycle Bin</strong>. All associated medical records, vaccinations, and lab reports are safely retained.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form method="POST" action="{{ url_for('pets.delete', id=pet.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger">Move to Recycle Bin</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

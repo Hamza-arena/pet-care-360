@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <div class="d-flex align-items-center mb-3">
+        <a href="{{ url_for('pharmacy.index') }}" class="btn btn-sm btn-outline-secondary me-2">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <h3 class="fw-bold mb-0">{{ title }}</h3>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-body p-4">
+          <form method="POST" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                {{ form.name.label(class="form-label fw-semibold small") }}
+                {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="e.g. Amoxiclav 250mg") }}
+                {% for err in form.name.errors %}<div class="invalid-feedback">{{ err }}</div>{% endfor %}
+              </div>
+
+              <div class="col-md-6">
+                {{ form.generic_name.label(class="form-label fw-semibold small") }}
+                {{ form.generic_name(class="form-control", placeholder="e.g. Amoxicillin + Clavulanic Acid") }}
+              </div>
+
+              <div class="col-md-4">
+                {{ form.category.label(class="form-label fw-semibold small") }}
+                {{ form.category(class="form-select") }}
+              </div>
+
+              <div class="col-md-4">
+                {{ form.unit.label(class="form-label fw-semibold small") }}
+                {{ form.unit(class="form-select") }}
+              </div>
+
+              <div class="col-md-4">
+                {{ form.strength.label(class="form-label fw-semibold small") }}
+                {{ form.strength(class="form-control", placeholder="e.g. 500mg, 10mg/ml") }}
+              </div>
+
+              <div class="col-md-4">
+                {{ form.base_price.label(class="form-label fw-semibold small") }}
+                {{ form.base_price(class="form-control", placeholder="0.00") }}
+              </div>
+
+              <div class="col-md-4">
+                {{ form.minimum_stock.label(class="form-label fw-semibold small") }}
+                {{ form.minimum_stock(class="form-control") }}
+              </div>
+
+              <div class="col-md-4">
+                {{ form.manufacturer.label(class="form-label fw-semibold small") }}
+                {{ form.manufacturer(class="form-control", placeholder="e.g. Pfizer, Zoetis") }}
+              </div>
+
+              <div class="col-12">
+                <div class="form-check form-switch mt-2">
+                  {{ form.requires_prescription(class="form-check-input", id="rxSwitch") }}
+                  {{ form.requires_prescription.label(class="form-check-label fw-semibold", for="rxSwitch") }}
+                </div>
+              </div>
+
+              <div class="col-12">
+                {{ form.description.label(class="form-label fw-semibold small") }}
+                {{ form.description(class="form-control", rows=3, placeholder="Therapeutic indications, storage requirements, dosage notes...") }}
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center pt-4 border-top mt-4">
+              <a href="{{ url_for('pharmacy.index') }}" class="btn btn-outline-secondary">Cancel</a>
+              {{ form.submit(class="btn btn-primary px-4") }}
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

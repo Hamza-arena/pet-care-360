@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Administrator Recycle Bin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h3 class="fw-bold mb-1"><i class="bi bi-trash3-fill text-danger me-2"></i> Administrator Recycle Bin</h3>
+      <p class="text-muted small mb-0">Recover soft-deleted patient dossiers, owners, appointments, and inventory records.</p>
+    </div>
+    <div>
+      <span class="badge bg-secondary p-2">
+        <i class="bi bi-shield-lock-fill me-1"></i> Admin Privileged Zone
+      </span>
+    </div>
+  </div>
+
+  <!-- Entity Tabs -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-body p-2">
+      <ul class="nav nav-pills flex-wrap">
+        <li class="nav-item">
+          <a class="nav-link {% if current_tab == 'pets' %}active{% endif %}" href="{{ url_for('admin.recycle_bin', tab='pets') }}">
+            <i class="bi bi-bug me-1"></i> Pets
+            <span class="badge bg-danger ms-1">{{ counts.pets }}</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if current_tab == 'owners' %}active{% endif %}" href="{{ url_for('admin.recycle_bin', tab='owners') }}">
+            <i class="bi bi-people me-1"></i> Owners
+            <span class="badge bg-danger ms-1">{{ counts.owners }}</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if current_tab == 'appointments' %}active{% endif %}" href="{{ url_for('admin.recycle_bin', tab='appointments') }}">
+            <i class="bi bi-calendar-event me-1"></i> Appointments
+            <span class="badge bg-danger ms-1">{{ counts.appointments }}</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if current_tab == 'invoices' %}active{% endif %}" href="{{ url_for('admin.recycle_bin', tab='invoices') }}">
+            <i class="bi bi-receipt me-1"></i> Invoices
+            <span class="badge bg-danger ms-1">{{ counts.invoices }}</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if current_tab == 'medicines' %}active{% endif %}" href="{{ url_for('admin.recycle_bin', tab='medicines') }}">
+            <i class="bi bi-capsule me-1"></i> Medicines
+            <span class="badge bg-danger ms-1">{{ counts.medicines }}</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if current_tab == 'records' %}active{% endif %}" href="{{ url_for('admin.recycle_bin', tab='records') }}">
+            <i class="bi bi-file-medical me-1"></i> Medical Records
+            <span class="badge bg-danger ms-1">{{ counts.records }}</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Deleted Items Table -->
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      {% if items %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <th>Deleted Record</th>
+              <th>Deleted At</th>
+              <th>Deleted By</th>
+              <th class="text-end">Restore / Purge Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+            <tr>
+              <td class="text-muted font-monospace small">#{{ item.id }}</td>
+              <td>
+                <div class="fw-bold text-dark">
+                  {% if current_tab == 'pets' %}
+                    {{ item.name }} <span class="badge bg-light text-dark border ms-1">{{ item.species.name }}</span>
+                  {% elif current_tab == 'owners' %}
+                    {{ item.full_name }} ({{ item.phone }})
+                  {% elif current_tab == 'appointments' %}
+                    Appointment for {{ item.pet.name }} on {{ item.appointment_date.strftime('%b %d, %Y') }}
+                  {% elif current_tab == 'invoices' %}
+                    {{ item.invoice_number }} (${{ "%.2f"|format(item.total_amount) }})
+                  {% elif current_tab == 'medicines' %}
+                    {{ item.name }} ({{ item.category }})
+                  {% elif current_tab == 'records' %}
+                    Record for {{ item.pet.name }} - {{ item.chief_complaint or 'Clinical Consultation' }}
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                <span class="text-danger small">
+                  <i class="bi bi-clock me-1"></i>
+                  {{ item.deleted_at.strftime('%b %d, %Y at %H:%M UTC') if item.deleted_at else 'Unknown' }}
+                </span>
+              </td>
+              <td>
+                <span class="badge bg-secondary font-monospace">
+                  {{ deleters.get(item.deleted_by, 'System / User #' ~ (item.deleted_by or '0')) }}
+                </span>
+              </td>
+              <td class="text-end">
+                <!-- Restore Action Button -->
+                {% set entity_code = 'medical_record' if current_tab == 'records' else (current_tab[:-1] if current_tab.endswith('s') else current_tab) %}
+                <form method="POST" action="{{ url_for('admin.restore_item', model_name=entity_code, id=item.id) }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-success">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Restore Record
+                  </button>
+                </form>
+
+                <!-- Permanent Purge Button -->
+                <form method="POST" action="{{ url_for('admin.hard_delete_item', model_name=entity_code, id=item.id) }}" class="d-inline ms-1" onsubmit="return confirm('WARNING: Permanently delete this record? This action CANNOT be undone.');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Permanently delete from database">
+                    <i class="bi bi-x-octagon"></i> Purge
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-trash3 fs-1 text-secondary mb-2 d-block"></i>
+        <h5 class="fw-semibold mb-1">Recycle Bin is Empty</h5>
+        <p class="small text-muted mb-0">There are no soft-deleted {{ current_tab }} pending recovery.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}New Medical Examination{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-9 mx-auto">
+      <div class="d-flex align-items-center mb-3">
+        <a href="{{ url_for('medical.index') }}" class="btn btn-sm btn-outline-secondary me-2">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <h3 class="fw-bold mb-0">
+          Clinical Examination Chart
+          {% if pet %} - <span class="text-primary">{{ pet.name }}</span>{% endif %}
+        </h3>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-body p-4">
+          <form method="POST" novalidate>
+            {{ form.hidden_tag() }}
+
+            <h5 class="fw-bold text-primary mb-3"><i class="bi bi-activity me-2"></i> Clinical Presentation & Vitals</h5>
+            <div class="row g-3 mb-4">
+              <div class="col-12">
+                {{ form.chief_complaint.label(class="form-label fw-semibold small") }}
+                {{ form.chief_complaint(class="form-control" + (" is-invalid" if form.chief_complaint.errors else ""), rows=2, placeholder="Primary symptoms reported by owner, onset date...") }}
+                {% for err in form.chief_complaint.errors %}<div class="invalid-feedback">{{ err }}</div>{% endfor %}
+              </div>
+
+              <div class="col-md-3">
+                {{ form.temperature.label(class="form-label fw-semibold small") }}
+                {{ form.temperature(class="form-control", placeholder="e.g. 38.5") }}
+              </div>
+
+              <div class="col-md-3">
+                {{ form.weight.label(class="form-label fw-semibold small") }}
+                {{ form.weight(class="form-control", placeholder="Weight (kg)") }}
+              </div>
+
+              <div class="col-md-3">
+                {{ form.heart_rate.label(class="form-label fw-semibold small") }}
+                {{ form.heart_rate(class="form-control", placeholder="e.g. 110") }}
+              </div>
+
+              <div class="col-md-3">
+                {{ form.blood_pressure.label(class="form-label fw-semibold small") }}
+                {{ form.blood_pressure(class="form-control", placeholder="e.g. 120/80") }}
+              </div>
+
+              <div class="col-12">
+                {{ form.examination_notes.label(class="form-label fw-semibold small") }}
+                {{ form.examination_notes(class="form-control", rows=3, placeholder="HEENT, thoracic auscultation, abdominal palpation, coat/skin...") }}
+              </div>
+            </div>
+
+            <h5 class="fw-bold text-primary mb-3 border-top pt-3"><i class="bi bi-clipboard-pulse me-2"></i> Assessment & Plan</h5>
+            <div class="row g-3 mb-4">
+              <div class="col-md-12">
+                {{ form.diagnosis_id.label(class="form-label fw-semibold small") }}
+                {{ form.diagnosis_id(class="form-select") }}
+              </div>
+
+              <div class="col-12">
+                {{ form.treatment_description.label(class="form-label fw-semibold small") }}
+                {{ form.treatment_description(class="form-control", rows=3, placeholder="In-clinic treatments given (fluids, wound dressing, injection), home care instructions...") }}
+              </div>
+
+              <div class="col-md-4">
+                {{ form.follow_up_date.label(class="form-label fw-semibold small") }}
+                {{ form.follow_up_date(class="form-control") }}
+              </div>
+
+              <div class="col-md-8">
+                {{ form.follow_up_notes.label(class="form-label fw-semibold small") }}
+                {{ form.follow_up_notes(class="form-control", placeholder="Follow-up instructions (e.g. recheck stitches, CBC)") }}
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+              <a href="{{ url_for('medical.index') }}" class="btn btn-outline-secondary">Cancel</a>
+              {{ form.submit(class="btn btn-primary px-4") }}
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

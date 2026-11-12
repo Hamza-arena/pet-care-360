@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}{{ medicine.name }} - Pharmacy Dossier{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <a href="{{ url_for('pharmacy.index') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <h3 class="fw-bold mb-0">{{ medicine.name }}</h3>
+      <span class="badge bg-light text-dark border">{{ medicine.category }}</span>
+      {% if total_qty <= medicine.minimum_stock %}
+        <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Low Stock</span>
+      {% endif %}
+    </div>
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#receiveBatchCollapse">
+        <i class="bi bi-box-arrow-in-down me-1"></i> Receive Batch
+      </button>
+      <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteMedModal">
+        <i class="bi bi-trash3"></i> Delete
+      </button>
+    </div>
+  </div>
+
+  <!-- Receive Batch Collapse Card -->
+  <div class="collapse mb-4" id="receiveBatchCollapse">
+    <div class="card shadow-sm border-primary">
+      <div class="card-header bg-primary text-white py-2">
+        <h6 class="fw-bold mb-0"><i class="bi bi-box-seam me-2"></i> Receive New Inventory Batch (Stock IN)</h6>
+      </div>
+      <div class="card-body p-4">
+        <form method="POST" action="{{ url_for('pharmacy.add_batch', id=medicine.id) }}" class="row g-3">
+          {{ batch_form.hidden_tag() }}
+          <div class="col-md-4">
+            {{ batch_form.batch_number.label(class="form-label small fw-semibold") }}
+            {{ batch_form.batch_number(class="form-control", placeholder="e.g. LOT-2026-X") }}
+          </div>
+          <div class="col-md-4">
+            {{ batch_form.quantity_received.label(class="form-label small fw-semibold") }}
+            {{ batch_form.quantity_received(class="form-control", placeholder="Units received") }}
+          </div>
+          <div class="col-md-4">
+            {{ batch_form.expiry_date.label(class="form-label small fw-semibold") }}
+            {{ batch_form.expiry_date(class="form-control") }}
+          </div>
+          <div class="col-md-4">
+            {{ batch_form.purchase_price.label(class="form-label small fw-semibold") }}
+            {{ batch_form.purchase_price(class="form-control", placeholder="Unit cost ($)") }}
+          </div>
+          <div class="col-md-4">
+            {{ batch_form.selling_price.label(class="form-label small fw-semibold") }}
+            {{ batch_form.selling_price(class="form-control", value=medicine.base_price) }}
+          </div>
+          <div class="col-md-4">
+            {{ batch_form.supplier.label(class="form-label small fw-semibold") }}
+            {{ batch_form.supplier(class="form-control", placeholder="Distributor name") }}
+          </div>
+          <div class="col-12 text-end">
+            <button type="button" class="btn btn-sm btn-secondary me-2" data-bs-toggle="collapse" data-bs-target="#receiveBatchCollapse">Cancel</button>
+            {{ batch_form.submit(class="btn btn-sm btn-primary") }}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Column: Specs & Dispense Card -->
+    <div class="col-lg-5">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+          <h5 class="fw-bold mb-0"><i class="bi bi-info-circle text-primary me-2"></i> Medication Profile</h5>
+        </div>
+        <div class="card-body">
+          <table class="table table-sm table-bordered mb-3">
+            <tr><th class="w-40 text-muted">Generic Name:</th><td>{{ medicine.generic_name or '—' }}</td></tr>
+            <tr><th class="text-muted">Dosage Form:</th><td>{{ medicine.unit }}</td></tr>
+            <tr><th class="text-muted">Strength:</th><td>{{ medicine.strength or 'Standard' }}</td></tr>
+            <tr><th class="text-muted">Unit Base Price:</th><td class="fw-bold text-success">${{ "%.2f"|format(medicine.base_price) }}</td></tr>
+            <tr><th class="text-muted">Manufacturer:</th><td>{{ medicine.manufacturer or '—' }}</td></tr>
+            <tr><th class="text-muted">Prescription Req:</th><td>{{ 'Yes (Rx Required)' if medicine.requires_prescription else 'Over the Counter (OTC)' }}</td></tr>
+            <tr><th class="text-muted">Min Threshold:</th><td>{{ medicine.minimum_stock }} units</td></tr>
+            <tr>
+              <th class="text-muted">Total Stock Remaining:</th>
+              <td class="fw-bold font-monospace fs-5 text-primary">{{ total_qty }} {{ medicine.unit }}s</td>
+            </tr>
+          </table>
+
+          {% if medicine.description %}
+          <div class="border-top pt-2">
+            <h6 class="fw-bold small text-muted text-uppercase mb-1">Indications & Notes</h6>
+            <p class="text-muted small mb-0">{{ medicine.description }}</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Quick Dispense Form -->
+      <div class="card shadow-sm border-success">
+        <div class="card-header bg-success text-white py-2">
+          <h6 class="fw-bold mb-0"><i class="bi bi-capsule me-2"></i> Dispense Medication (Stock OUT)</h6>
+        </div>
+        <div class="card-body p-3">
+          {% if dispense_form.batch_id.choices %}
+          <form method="POST" action="{{ url_for('pharmacy.dispense', id=medicine.id) }}">
+            {{ dispense_form.hidden_tag() }}
+            <div class="mb-2">
+              {{ dispense_form.batch_id.label(class="form-label small fw-semibold") }}
+              {{ dispense_form.batch_id(class="form-select form-select-sm") }}
+            </div>
+            <div class="mb-2">
+              {{ dispense_form.quantity.label(class="form-label small fw-semibold") }}
+              {{ dispense_form.quantity(class="form-control form-control-sm", value=1) }}
+            </div>
+            <div class="mb-3">
+              {{ dispense_form.notes.label(class="form-label small fw-semibold") }}
+              {{ dispense_form.notes(class="form-control form-control-sm", placeholder="Reason / Patient name...") }}
+            </div>
+            {{ dispense_form.submit(class="btn btn-sm btn-success w-100") }}
+          </form>
+          {% else %}
+          <p class="text-muted small mb-0 text-center py-2">
+            <i class="bi bi-x-circle text-danger me-1"></i> No active batches with inventory available to dispense. Receive a new batch first.
+          </p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Batches Table -->
+    <div class="col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h5 class="fw-bold mb-0"><i class="bi bi-layers text-primary me-2"></i> Inventory Batches ({{ active_batches|length }})</h5>
+        </div>
+        <div class="card-body p-0">
+          {% if active_batches %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Lot / Batch #</th>
+                  <th>Received Date</th>
+                  <th>Expiry Date</th>
+                  <th>Received Qty</th>
+                  <th>Stock Left</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for b in active_batches %}
+                <tr>
+                  <td class="fw-bold font-monospace">{{ b.batch_number }}</td>
+                  <td>{{ b.received_date.strftime('%b %d, %Y') }}</td>
+                  <td>
+                    {% if b.is_expired %}
+                      <span class="badge bg-danger">Expired: {{ b.expiry_date.strftime('%b %d, %Y') }}</span>
+                    {% else %}
+                      {{ b.expiry_date.strftime('%b %d, %Y') }}
+                    {% endif %}
+                  </td>
+                  <td>{{ b.quantity_received }}</td>
+                  <td class="fw-bold font-monospace fs-6">{{ b.quantity_remaining }}</td>
+                  <td>
+                    {% if b.quantity_remaining == 0 %}
+                      <span class="badge bg-secondary">Depleted</span>
+                    {% elif b.is_expired %}
+                      <span class="badge bg-danger">Expired</span>
+                    {% else %}
+                      <span class="badge bg-success">Active</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-4 text-muted small">No active inventory batches. Click "Receive Batch" to record stock.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Soft Delete Modal -->
+<div class="modal fade" id="deleteMedModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="bi bi-trash3 me-2"></i> Soft Delete Medication</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Move <strong>{{ medicine.name }}</strong> to the Admin Recycle Bin?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form method="POST" action="{{ url_for('pharmacy.delete', id=medicine.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger">Move to Recycle Bin</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

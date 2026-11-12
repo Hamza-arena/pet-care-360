@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import UTC, datetime
 
 from app.extensions import db
 from app.models.base import SoftDeleteMixin, TimestampMixin
@@ -12,7 +12,7 @@ class Invoice(SoftDeleteMixin, TimestampMixin, db.Model):
     owner_id = db.Column(db.Integer, db.ForeignKey('owners.id'), nullable=False)
     pet_id = db.Column(db.Integer, db.ForeignKey('pets.id'))
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'))
-    issue_date = db.Column(db.DateTime, default=datetime.utcnow)
+    issue_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     due_date = db.Column(db.Date)
     subtotal = db.Column(db.Float, default=0.0)
     tax_amount = db.Column(db.Float, default=0.0)
@@ -63,7 +63,7 @@ class Payment(SoftDeleteMixin, TimestampMixin, db.Model):
     invoice_id = db.Column(db.Integer, db.ForeignKey('invoices.id'), nullable=False)
     payment_method_id = db.Column(db.Integer, db.ForeignKey('payment_methods.id'))
     amount = db.Column(db.Float, nullable=False)
-    payment_date = db.Column(db.DateTime, default=datetime.utcnow)
+    payment_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     transaction_reference = db.Column(db.String(100))
     status = db.Column(db.String(20), default='Completed')
     received_by = db.Column(db.Integer, db.ForeignKey('users.id'))

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-9 mx-auto">
+      <div class="d-flex align-items-center mb-3">
+        <a href="{{ url_for('pets.index') }}" class="btn btn-sm btn-outline-secondary me-2">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <h3 class="fw-bold mb-0">{{ title }}</h3>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-body p-4">
+          <form method="POST" novalidate>
+            {{ form.hidden_tag() }}
+
+            <h5 class="fw-bold text-primary mb-3"><i class="bi bi-tag-fill me-2"></i> Patient Identification</h5>
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                {{ form.name.label(class="form-label fw-semibold small") }}
+                {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="e.g. Bella, Max") }}
+                {% for err in form.name.errors %}<div class="invalid-feedback">{{ err }}</div>{% endfor %}
+              </div>
+
+              <div class="col-md-6">
+                {{ form.owner_id.label(class="form-label fw-semibold small") }}
+                {{ form.owner_id(class="form-select" + (" is-invalid" if form.owner_id.errors else "")) }}
+                {% for err in form.owner_id.errors %}<div class="invalid-feedback">{{ err }}</div>{% endfor %}
+              </div>
+
+              <div class="col-md-6">
+                {{ form.species_id.label(class="form-label fw-semibold small") }}
+                {{ form.species_id(class="form-select", id="speciesSelect") }}
+              </div>
+
+              <div class="col-md-6">
+                {{ form.breed_id.label(class="form-label fw-semibold small") }}
+                {{ form.breed_id(class="form-select", id="breedSelect") }}
+              </div>
+            </div>
+
+            <h5 class="fw-bold text-primary mb-3 border-top pt-3"><i class="bi bi-heart-pulse-fill me-2"></i> Physical & Medical Profile</h5>
+            <div class="row g-3 mb-4">
+              <div class="col-md-4">
+                {{ form.gender.label(class="form-label fw-semibold small") }}
+                {{ form.gender(class="form-select") }}
+              </div>
+
+              <div class="col-md-4">
+                {{ form.date_of_birth.label(class="form-label fw-semibold small") }}
+                {{ form.date_of_birth(class="form-control") }}
+              </div>
+
+              <div class="col-md-4">
+                {{ form.weight.label(class="form-label fw-semibold small") }}
+                {{ form.weight(class="form-control", placeholder="Weight in kg") }}
+              </div>
+
+              <div class="col-md-4">
+                {{ form.color.label(class="form-label fw-semibold small") }}
+                {{ form.color(class="form-control", placeholder="e.g. Golden, Black & White") }}
+              </div>
+
+              <div class="col-md-4">
+                {{ form.microchip_number.label(class="form-label fw-semibold small") }}
+                {{ form.microchip_number(class="form-control", placeholder="15-digit RFID chip number") }}
+              </div>
+
+              <div class="col-md-4">
+                {{ form.insurance_number.label(class="form-label fw-semibold small") }}
+                {{ form.insurance_number(class="form-control", placeholder="Policy # (optional)") }}
+              </div>
+
+              <div class="col-12">
+                <div class="form-check form-switch mt-2">
+                  {{ form.is_neutered(class="form-check-input", id="neuteredSwitch") }}
+                  {{ form.is_neutered.label(class="form-check-label fw-semibold", for="neuteredSwitch") }}
+                </div>
+              </div>
+
+              <div class="col-12">
+                {{ form.notes.label(class="form-label fw-semibold small") }}
+                {{ form.notes(class="form-control", rows=3, placeholder="Known conditions, behavioral notes, diet restrictions...") }}
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+              <a href="{{ url_for('pets.index') }}" class="btn btn-outline-secondary">Cancel</a>
+              {{ form.submit(class="btn btn-primary px-4") }}
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Dynamic breed selector based on chosen species
+  const speciesSelect = document.getElementById('speciesSelect');
+  const breedSelect = document.getElementById('breedSelect');
+
+  if (speciesSelect && breedSelect) {
+    speciesSelect.addEventListener('change', function() {
+      const speciesId = this.value;
+      if (!speciesId) return;
+
+      fetch(`/pets/api/breeds/${speciesId}`)
+        .then(response => response.json())
+        .then(data => {
+          breedSelect.innerHTML = '<option value="0">Mixed / Unknown Breed</option>';
+          data.forEach(breed => {
+            const opt = document.createElement('option');
+            opt.value = breed.id;
+            opt.textContent = breed.name;
+            breedSelect.appendChild(opt);
+          });
+        })
+        .catch(err => console.error('Error fetching breeds:', err));
+    });
+  }
+</script>
+{% endblock %}
+

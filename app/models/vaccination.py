@@ -2,7 +2,7 @@ from app.extensions import db
 from app.models.base import SoftDeleteMixin, TimestampMixin
 
 
-class VaccineCatalog(db.Model, SoftDeleteMixin, TimestampMixin):
+class VaccineCatalog(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'vaccine_catalog'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -21,7 +21,7 @@ class VaccineCatalog(db.Model, SoftDeleteMixin, TimestampMixin):
         return f'<VaccineCatalog {self.name}>'
 
 
-class VaccinationRecord(db.Model, SoftDeleteMixin, TimestampMixin):
+class VaccinationRecord(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'vaccination_records'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -36,7 +36,7 @@ class VaccinationRecord(db.Model, SoftDeleteMixin, TimestampMixin):
     reaction = db.Column(db.Text)
     notes = db.Column(db.Text)
 
-    pet = db.relationship('Pet', backref=db.backref('vaccination_records', lazy='dynamic'))
+    pet = db.relationship('Pet', back_populates='vaccination_records')
     vaccine = db.relationship('VaccineCatalog', backref=db.backref('vaccination_records', lazy='dynamic'))
     doctor = db.relationship('User', backref=db.backref('administered_vaccinations', lazy='dynamic'))
 
@@ -44,7 +44,7 @@ class VaccinationRecord(db.Model, SoftDeleteMixin, TimestampMixin):
         return f'<VaccinationRecord Pet:{self.pet_id} Vaccine:{self.vaccine_id}>'
 
 
-class VaccinationReminder(db.Model, TimestampMixin):
+class VaccinationReminder(TimestampMixin, db.Model):
     __tablename__ = 'vaccination_reminders'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -62,7 +62,7 @@ class VaccinationReminder(db.Model, TimestampMixin):
         return f'<VaccinationReminder Pet:{self.pet_id} Status:{self.status}>'
 
 
-class DewormingRecord(db.Model, SoftDeleteMixin, TimestampMixin):
+class DewormingRecord(SoftDeleteMixin, TimestampMixin, db.Model):
     __tablename__ = 'deworming_records'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -75,7 +75,7 @@ class DewormingRecord(db.Model, SoftDeleteMixin, TimestampMixin):
     weight_at_time = db.Column(db.Float)
     notes = db.Column(db.Text)
 
-    pet = db.relationship('Pet', backref=db.backref('deworming_records', lazy='dynamic'))
+    pet = db.relationship('Pet', back_populates='deworming_records')
     doctor = db.relationship('User', backref=db.backref('administered_dewormings', lazy='dynamic'))
 
     def __repr__(self):
