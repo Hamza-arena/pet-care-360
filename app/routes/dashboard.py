@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 from flask import Blueprint, render_template, request
-from flask_login import login_required
+from flask_login import current_user, login_required
 from sqlalchemy import func
 
 from app.extensions import db
@@ -16,6 +16,7 @@ from app.models import (
     Owner,
     Payment,
     Pet,
+    QueueToken,
 )
 from app.utils.tenant import tenant_filter
 
@@ -26,6 +27,58 @@ dashboard_bp = Blueprint('dashboard', __name__)
 @login_required
 def index():
     today = date.today()
+
+    # Persona 1: User / Pet Owner Client Portal
+    if current_user.has_role('User'):
+        owner = current_user.owner_profile
+        pets = [p for p in owner.pets if not p.is_deleted] if owner else []
+        pet_ids = [p.id for p in pets]
+
+        upcoming_appointments = []
+        medical_records = []
+        invoices = []
+
+        if pet_ids:
+            upcoming_appointments = (
+                tenant_filter(Appointment.query_active(), Appointment)
+                .options(
+                    db.joinedload(Appointment.pet),
+                    db.joinedload(Appointment.doctor),
+                )
+                .filter(Appointment.pet_id.in_(pet_ids))
+                .order_by(Appointment.appointment_date.desc(), Appointment.appointment_time.desc())
+                .limit(10)
+                .all()
+            )
+            medical_records = (
+                tenant_filter(MedicalRecord.query_active(), MedicalRecord)
+                .options(
+                    db.joinedload(MedicalRecord.pet),
+                    db.joinedload(MedicalRecord.doctor),
+                )
+                .filter(MedicalRecord.pet_id.in_(pet_ids))
+                .order_by(MedicalRecord.visit_date.desc())
+                .limit(10)
+                .all()
+            )
+
+        if owner:
+            invoices = (
+                tenant_filter(Invoice.query_active(), Invoice)
+                .filter(Invoice.owner_id == owner.id)
+                .order_by(Invoice.created_at.desc())
+                .limit(10)
+                .all()
+            )
+
+        return render_template(
+            'dashboard/user_portal.html',
+            owner=owner,
+            pets=pets,
+            upcoming_appointments=upcoming_appointments,
+            medical_records=medical_records,
+            invoices=invoices,
+        )
 
     # Core Metric Counters (tenant-scoped)
     total_pets = tenant_filter(Pet.query_active(), Pet).count()
@@ -98,6 +151,61 @@ def index():
         Invoice,
     ).count()
 
+    # Active Queue Tokens for today (with eager loading to avoid N+1 queries)
+    queue_tokens = (
+        tenant_filter(QueueToken.query, QueueToken)
+        .options(
+            db.joinedload(QueueToken.appointment).joinedload(Appointment.pet).joinedload(Pet.owner)
+        )
+        .join(Appointment, QueueToken.appointment_id == Appointment.id)
+        .filter(Appointment.appointment_date == today)
+        .filter(QueueToken.status.in_(['Issued', 'Called']))
+        .order_by(QueueToken.issued_at.asc())
+        .all()
+    )
+
+    # Persona 2: Doctor Cockpit
+    if current_user.has_role('Doctor'):
+        doc_today_appointments = [a for a in today_appointments if a.doctor_id == current_user.id]
+        if not doc_today_appointments:
+            doc_today_appointments = today_appointments
+
+        doc_recent_records = (
+            tenant_filter(MedicalRecord.query_active(), MedicalRecord)
+            .options(
+                db.joinedload(MedicalRecord.pet),
+                db.joinedload(MedicalRecord.doctor),
+            )
+            .filter(MedicalRecord.doctor_id == current_user.id)
+            .order_by(MedicalRecord.visit_date.desc())
+            .limit(6)
+            .all()
+        )
+        if not doc_recent_records:
+            doc_recent_records = recent_records
+
+        return render_template(
+            'dashboard/doctor_dashboard.html',
+            today_date=today,
+            today_appointments=doc_today_appointments,
+            queue_tokens=queue_tokens,
+            pending_labs=pending_labs,
+            recent_records=doc_recent_records,
+        )
+
+    # Persona 3: Staff / Receptionist Cockpit
+    if current_user.has_role('Staff') or current_user.has_role('Receptionist'):
+        return render_template(
+            'dashboard/staff_dashboard.html',
+            today_date=today,
+            today_appointments=today_appointments,
+            today_appointments_count=len(today_appointments),
+            queue_tokens=queue_tokens,
+            unpaid_invoices_count=unpaid_invoices_count,
+            alert_medicines=alert_medicines,
+        )
+
+    # Persona 4: Admin Executive Overview (Default)
     return render_template(
         'dashboard/index.html',
         total_pets=total_pets,
@@ -111,6 +219,7 @@ def index():
         unpaid_invoices_count=unpaid_invoices_count,
         today_date=today,
     )
+
 
 
 @dashboard_bp.route('/search')

@@ -28,9 +28,74 @@
     </a>
 
     <div class="py-2">
-      <div class="nav-header">Main Overview</div>
+      {% if current_user.has_role('User') %}
+      <!-- Pet Owner Client Navigation -->
+      <div class="nav-header">Client Portal</div>
       <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
-        <i class="bi bi-grid-1x2-fill"></i> Dashboard
+        <i class="bi bi-house-door-fill"></i> My Portal
+      </a>
+      <a href="{{ url_for('pets.index') }}" class="nav-link {% if request.blueprint == 'pets' %}active{% endif %}">
+        <i class="bi bi-bug-fill"></i> My Pets
+      </a>
+      <a href="{{ url_for('appointments.index') }}" class="nav-link {% if request.blueprint == 'appointments' %}active{% endif %}">
+        <i class="bi bi-calendar2-check-fill"></i> Appointments
+      </a>
+      <a href="{{ url_for('billing.index') }}" class="nav-link {% if request.blueprint == 'billing' %}active{% endif %}">
+        <i class="bi bi-receipt-cutoff"></i> Invoices & Receipts
+      </a>
+      <a href="{{ url_for('auth.change_password') }}" class="nav-link {% if request.endpoint == 'auth.change_password' %}active{% endif %}">
+        <i class="bi bi-shield-lock-fill"></i> Change Password
+      </a>
+
+      {% elif current_user.has_role('Doctor') %}
+      <!-- Doctor Clinical Navigation -->
+      <div class="nav-header">Clinical Practice</div>
+      <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+        <i class="bi bi-speedometer2"></i> Doctor Cockpit
+      </a>
+      <a href="{{ url_for('appointments.index') }}" class="nav-link {% if request.blueprint == 'appointments' %}active{% endif %}">
+        <i class="bi bi-calendar2-check-fill"></i> Today's Consultations
+      </a>
+      <a href="{{ url_for('medical.index') }}" class="nav-link {% if request.blueprint == 'medical' %}active{% endif %}">
+        <i class="bi bi-file-earmark-medical-fill"></i> Medical Records
+      </a>
+      <a href="{{ url_for('laboratory.index') }}" class="nav-link {% if request.blueprint == 'laboratory' %}active{% endif %}">
+        <i class="bi bi-moisture"></i> Diagnostics & Lab
+      </a>
+      <a href="{{ url_for('vaccination.index') }}" class="nav-link {% if request.blueprint == 'vaccination' %}active{% endif %}">
+        <i class="bi bi-shield-check"></i> Vaccines & Deworming
+      </a>
+      <a href="{{ url_for('pets.index') }}" class="nav-link {% if request.blueprint == 'pets' %}active{% endif %}">
+        <i class="bi bi-bug-fill"></i> Patients Dossier
+      </a>
+
+      {% elif current_user.has_role('Staff') or current_user.has_role('Receptionist') %}
+      <!-- Staff Front Desk Navigation -->
+      <div class="nav-header">Front Desk Operations</div>
+      <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+        <i class="bi bi-speedometer2"></i> Reception Desk
+      </a>
+      <a href="{{ url_for('appointments.index') }}" class="nav-link {% if request.blueprint == 'appointments' %}active{% endif %}">
+        <i class="bi bi-calendar2-check-fill"></i> Appointments & Queue
+      </a>
+      <a href="{{ url_for('owners.index') }}" class="nav-link {% if request.blueprint == 'owners' %}active{% endif %}">
+        <i class="bi bi-people-fill"></i> Pet Owners & Clients
+      </a>
+      <a href="{{ url_for('pets.index') }}" class="nav-link {% if request.blueprint == 'pets' %}active{% endif %}">
+        <i class="bi bi-bug-fill"></i> Pets Dossier
+      </a>
+      <a href="{{ url_for('billing.index') }}" class="nav-link {% if request.blueprint == 'billing' %}active{% endif %}">
+        <i class="bi bi-receipt-cutoff"></i> Billing & Payments
+      </a>
+      <a href="{{ url_for('pharmacy.index') }}" class="nav-link {% if request.blueprint == 'pharmacy' %}active{% endif %}">
+        <i class="bi bi-capsule-pill"></i> Pharmacy Dispense
+      </a>
+
+      {% else %}
+      <!-- Administrator Executive Navigation -->
+      <div class="nav-header">Executive Overview</div>
+      <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+        <i class="bi bi-grid-1x2-fill"></i> Hospital Dashboard
       </a>
 
       <div class="nav-header">Clinical Care</div>
@@ -61,7 +126,6 @@
         <i class="bi bi-receipt-cutoff"></i> Billing & Invoices
       </a>
 
-      {% if current_user.has_role('Admin') %}
       <div class="nav-header">Administration</div>
       <a href="{{ url_for('admin.recycle_bin') }}" class="nav-link {% if request.endpoint == 'admin.recycle_bin' %}active{% endif %}">
         <i class="bi bi-trash3-fill"></i> Recycle Bin
@@ -96,17 +160,17 @@
       </div>
 
       <div class="d-flex align-items-center gap-3">
-        <!-- Quick Role Switcher for Evaluators / Grading -->
-        <div class="dropdown">
-          <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="bi bi-arrow-left-right text-primary me-1"></i> Demo Switcher
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-            <li><h6 class="dropdown-header">Switch Role Context</h6></li>
-            <li><a class="dropdown-item" href="{{ url_for('auth.demo_login', role_name='admin') }}"><i class="bi bi-shield-lock-fill text-danger me-2"></i> Administrator</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('auth.demo_login', role_name='doctor') }}"><i class="bi bi-heart-pulse-fill text-primary me-2"></i> Dr. Attending Doctor</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('auth.demo_login', role_name='staff') }}"><i class="bi bi-person-fill text-success me-2"></i> Reception / Clinic Staff</a></li>
-          </ul>
+        <!-- Active User Role Badge -->
+        <div>
+          {% if current_user.has_role('Admin') %}
+            <span class="badge bg-danger shadow-sm px-2 py-1"><i class="bi bi-shield-lock-fill me-1"></i> Administrator</span>
+          {% elif current_user.has_role('Doctor') %}
+            <span class="badge text-white shadow-sm px-2 py-1" style="background-color: #0d9488;"><i class="bi bi-heart-pulse-fill me-1"></i> Doctor</span>
+          {% elif current_user.has_role('Staff') or current_user.has_role('Receptionist') %}
+            <span class="badge bg-success shadow-sm px-2 py-1"><i class="bi bi-person-badge-fill me-1"></i> Staff / Reception</span>
+          {% elif current_user.has_role('User') %}
+            <span class="badge bg-primary shadow-sm px-2 py-1"><i class="bi bi-person-heart me-1"></i> Pet Owner</span>
+          {% endif %}
         </div>
 
         <!-- User Profile Dropdown -->

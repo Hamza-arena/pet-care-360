@@ -28,6 +28,13 @@ class User(UserMixin, TenantMixin, SoftDeleteMixin, TimestampMixin, db.Model):
                                     cascade='all, delete-orphan')
 
     @property
+    def owner_profile(self):
+        if not self.email:
+            return None
+        from app.models.owners import Owner
+        return Owner.query.filter_by(email=self.email).first()
+
+    @property
     def roles(self):
         if not hasattr(self, '_cached_roles') or self._cached_roles is None:
             self._cached_roles = [ur.role for ur in self.user_roles.all()]

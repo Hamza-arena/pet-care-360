@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% block title %}Front Desk & Staff Cockpit{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <!-- Staff Header Banner -->
+  <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #15803d, #16a34a); color: white;">
+    <div class="card-body p-4">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="badge bg-light text-success px-3 py-2 fw-semibold">
+              <i class="bi bi-person-badge-fill me-1"></i> Front Desk & Operations Desk
+            </span>
+            <span class="text-white-50 small">
+              <i class="bi bi-clock-history me-1"></i> Active Shift • Central Animal Hospital
+            </span>
+          </div>
+          <h2 class="fw-bold mb-1">Welcome, {{ current_user.first_name or current_user.username }} 📋</h2>
+          <p class="text-white-50 mb-0">Today is {{ today_date.strftime('%A, %B %d, %Y') }}. Manage patient check-ins, queue tokens, and reception billing.</p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+          <div class="d-flex flex-wrap justify-content-md-end gap-2">
+            <a href="{{ url_for('owners.create') }}" class="btn btn-warning text-dark fw-semibold shadow-sm">
+              <i class="bi bi-person-plus-fill me-1"></i> Register Owner & Pet
+            </a>
+            <a href="{{ url_for('appointments.create') }}" class="btn btn-light fw-semibold">
+              <i class="bi bi-calendar-plus me-1"></i> Book Appointment
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Operational Metric Counters -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body d-flex align-items-center p-3">
+          <div class="rounded-3 bg-primary bg-opacity-10 text-primary p-3 me-3">
+            <i class="bi bi-ticket-perforated-fill fs-3"></i>
+          </div>
+          <div>
+            <div class="text-muted small fw-semibold text-uppercase">Active Queue</div>
+            <h3 class="fw-bold mb-0">{{ queue_tokens|length }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body d-flex align-items-center p-3">
+          <div class="rounded-3 bg-info bg-opacity-10 text-info p-3 me-3">
+            <i class="bi bi-calendar-day fs-3"></i>
+          </div>
+          <div>
+            <div class="text-muted small fw-semibold text-uppercase">Appointments Today</div>
+            <h3 class="fw-bold mb-0">{{ today_appointments_count }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body d-flex align-items-center p-3">
+          <div class="rounded-3 bg-danger bg-opacity-10 text-danger p-3 me-3">
+            <i class="bi bi-receipt fs-3"></i>
+          </div>
+          <div>
+            <div class="text-muted small fw-semibold text-uppercase">Unpaid Invoices</div>
+            <h3 class="fw-bold mb-0">{{ unpaid_invoices_count }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body d-flex align-items-center p-3">
+          <div class="rounded-3 bg-warning bg-opacity-10 text-warning p-3 me-3">
+            <i class="bi bi-capsule fs-3"></i>
+          </div>
+          <div>
+            <div class="text-muted small fw-semibold text-uppercase">Low Stock Alerts</div>
+            <h3 class="fw-bold mb-0">{{ alert_medicines|length }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Section: Live Queue Desk & Quick Walk-In Check-In -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+          <div>
+            <h5 class="fw-bold mb-0"><i class="bi bi-broadcast text-primary me-2"></i> Live Waiting Room Queue</h5>
+            <small class="text-muted">Currently active queue tokens at reception</small>
+          </div>
+          <a href="{{ url_for('appointments.index') }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-list-check me-1"></i> Manage Queue
+          </a>
+        </div>
+        <div class="card-body p-0">
+          {% if queue_tokens %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Token #</th>
+                  <th>Patient</th>
+                  <th>Doctor Room</th>
+                  <th>Status</th>
+                  <th>Issued At</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for tok in queue_tokens %}
+                <tr>
+                  <td><span class="badge bg-primary fs-6">{{ tok.token_number }}</span></td>
+                  <td>
+                    {% if tok.appointment and tok.appointment.pet %}
+                      <strong>{{ tok.appointment.pet.name }}</strong>
+                      <div class="small text-muted">{{ tok.appointment.pet.owner.full_name if tok.appointment.pet.owner else '' }}</div>
+                    {% else %}
+                      <span class="text-muted">Walk-in</span>
+                    {% endif %}
+                  </td>
+                  <td>Counter {{ tok.counter_number or '1' }}</td>
+                  <td>
+                    {% if tok.status == 'Called' %}
+                      <span class="badge bg-warning text-dark">Called</span>
+                    {% elif tok.status == 'Issued' %}
+                      <span class="badge bg-info text-dark">Waiting</span>
+                    {% else %}
+                      <span class="badge bg-secondary">{{ tok.status }}</span>
+                    {% endif %}
+                  </td>
+                  <td><small class="text-muted">{{ tok.issued_at.strftime('%I:%M %p') if tok.issued_at else '' }}</small></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-check2-circle fs-1 text-success d-block mb-2"></i>
+            <h6 class="fw-bold">No active tokens in queue</h6>
+            <p class="small text-muted mb-0">Use the appointments list below to check in arriving patients and generate tokens.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Operations Shortcuts -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-bottom py-3">
+          <h5 class="fw-bold mb-0"><i class="bi bi-lightning-charge-fill text-warning me-2"></i> Front Desk Actions</h5>
+        </div>
+        <div class="card-body p-3">
+          <div class="d-grid gap-2">
+            <a href="{{ url_for('owners.create') }}" class="btn btn-outline-success text-start p-2">
+              <i class="bi bi-person-plus-fill me-2 fs-5"></i> <strong>New Pet Owner & Pet Registration</strong>
+              <div class="small text-muted ms-4">Register a new client walking into the clinic</div>
+            </a>
+            <a href="{{ url_for('appointments.create') }}" class="btn btn-outline-primary text-start p-2">
+              <i class="bi bi-calendar-plus me-2 fs-5"></i> <strong>Book Consultation Appointment</strong>
+              <div class="small text-muted ms-4">Schedule a doctor visit or check-up slot</div>
+            </a>
+            <a href="{{ url_for('billing.create_invoice') }}" class="btn btn-outline-danger text-start p-2">
+              <i class="bi bi-receipt me-2 fs-5"></i> <strong>Generate Billing Invoice / Payment</strong>
+              <div class="small text-muted ms-4">Cash, Card, or Online payment checkout</div>
+            </a>
+            <a href="{{ url_for('pharmacy.index') }}" class="btn btn-outline-secondary text-start p-2">
+              <i class="bi bi-capsule me-2 fs-5"></i> <strong>Pharmacy Quick Dispense</strong>
+              <div class="small text-muted ms-4">Dispense prescribed medications directly to client</div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Today's Patient Schedule -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+      <h5 class="fw-bold mb-0"><i class="bi bi-calendar2-week text-primary me-2"></i> Today's Appointment Intake Schedule</h5>
+      <a href="{{ url_for('appointments.index') }}" class="btn btn-sm btn-outline-secondary">View All Appointments</a>
+    </div>
+    <div class="card-body p-0">
+      {% if today_appointments %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Time</th>
+              <th>Token</th>
+              <th>Patient</th>
+              <th>Owner & Contact</th>
+              <th>Assigned Doctor</th>
+              <th>Status</th>
+              <th class="text-end">Desk Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for appt in today_appointments %}
+            <tr>
+              <td><span class="fw-semibold">{{ appt.appointment_time.strftime('%I:%M %p') }}</span></td>
+              <td>
+                {% if appt.queue_token %}
+                  <span class="badge bg-primary fs-6">{{ appt.queue_token.token_number }}</span>
+                {% else %}
+                  <span class="badge bg-light text-muted border">General</span>
+                {% endif %}
+              </td>
+              <td>
+                <strong>{{ appt.pet.name if appt.pet else 'Walk-in' }}</strong>
+                <div class="small text-muted">{{ appt.pet.species.name if appt.pet and appt.pet.species else '' }}</div>
+              </td>
+              <td>
+                {% if appt.pet and appt.pet.owner %}
+                  <div>{{ appt.pet.owner.full_name }}</div>
+                  <small class="text-muted"><i class="bi bi-telephone"></i> {{ appt.pet.owner.phone }}</small>
+                {% else %}
+                  <span class="text-muted">N/A</span>
+                {% endif %}
+              </td>
+              <td>{{ 'Dr. ' ~ appt.doctor.first_name if appt.doctor else 'Unassigned' }}</td>
+              <td>
+                <span class="badge bg-info text-dark">{{ appt.status }}</span>
+              </td>
+              <td class="text-end">
+                <a href="{{ url_for('appointments.view', id=appt.id) }}" class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-eye"></i> Details
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-4 text-muted">
+        <p class="mb-0 small">No appointments booked for today.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+

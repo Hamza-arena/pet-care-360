@@ -39,7 +39,9 @@ def seed_database():
             ('Doctor', 'Licensed veterinarian with medical consultation access'),
             ('Nurse', 'Veterinary technician for patient triage and care'),
             ('Receptionist', 'Front desk appointment booking and billing intake'),
-            ('Pharmacist', 'Pharmacy inventory, batch receipt, and medication dispensing')
+            ('Staff', 'Front desk appointment booking and billing intake'),
+            ('Pharmacist', 'Pharmacy inventory, batch receipt, and medication dispensing'),
+            ('User', 'Pet Owner / Client account')
         ]
         role_objs = {}
         for rname, rdesc in roles_data:
@@ -77,7 +79,7 @@ def seed_database():
             phone='+92 300 0000001',
             is_active=True
         )
-        admin.set_password('Admin@123')
+        admin.set_password('1790')
         db.session.add(admin)
 
         doctor = User(
@@ -88,7 +90,7 @@ def seed_database():
             phone='+92 300 0000002',
             is_active=True
         )
-        doctor.set_password('Doctor@123')
+        doctor.set_password('1567')
         db.session.add(doctor)
 
         doctor2 = User(
@@ -99,7 +101,7 @@ def seed_database():
             phone='+92 300 0000003',
             is_active=True
         )
-        doctor2.set_password('Doctor@123')
+        doctor2.set_password('1567')
         db.session.add(doctor2)
 
         staff = User(
@@ -110,15 +112,29 @@ def seed_database():
             phone='+92 300 0000004',
             is_active=True
         )
-        staff.set_password('Staff@123')
+        staff.set_password('1234')
         db.session.add(staff)
+
+        # Pet Owner / Client User
+        client_user = User(
+            email='user@petcare360.com',
+            username='pet_owner',
+            first_name='Hamza',
+            last_name='Owner',
+            phone='+92 300 0000005',
+            is_active=True
+        )
+        client_user.set_password('user123')
+        db.session.add(client_user)
         db.session.flush()
 
         # Assign Roles
         db.session.add(UserRole(user_id=admin.id, role_id=role_objs['Admin'].id))
         db.session.add(UserRole(user_id=doctor.id, role_id=role_objs['Doctor'].id))
         db.session.add(UserRole(user_id=doctor2.id, role_id=role_objs['Doctor'].id))
+        db.session.add(UserRole(user_id=staff.id, role_id=role_objs['Staff'].id))
         db.session.add(UserRole(user_id=staff.id, role_id=role_objs['Receptionist'].id))
+        db.session.add(UserRole(user_id=client_user.id, role_id=role_objs['User'].id))
 
         # Staff Profiles
         db.session.add(StaffProfile(
