@@ -1,5 +1,14 @@
+import datetime as _dt
 import os
-from datetime import UTC, datetime
+
+if not hasattr(_dt, 'UTC'):
+    _dt.UTC = _dt.timezone.utc
+
+try:
+    from datetime import UTC, datetime
+except ImportError:
+    from datetime import datetime, timezone
+    UTC = timezone.utc
 
 from flask import Flask, jsonify, render_template
 

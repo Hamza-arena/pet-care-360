@@ -1,5 +1,9 @@
+import datetime as _dt
 import os
 import sys
+
+if not hasattr(_dt, 'UTC'):
+    _dt.UTC = _dt.timezone.utc
 
 # Replace '<your-username>' with your PythonAnywhere account username
 USERNAME = os.environ.get('USER', 'your_username')
@@ -19,3 +23,4 @@ if not os.environ.get('DATABASE_URL'):
     os.environ['DATABASE_URL'] = f'sqlite:///{PROJECT_DIR}/petcare360.db'
 
 from wsgi import app as application
+

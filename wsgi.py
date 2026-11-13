@@ -1,4 +1,9 @@
+import datetime as _dt
 import os
+
+if not hasattr(_dt, 'UTC'):
+    _dt.UTC = _dt.timezone.utc
+
 from app import create_app
 
 app = create_app()

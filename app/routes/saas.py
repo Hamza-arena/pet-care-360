@@ -1,5 +1,9 @@
 import json
-from datetime import UTC, datetime, timedelta
+try:
+    from datetime import UTC, datetime, timedelta
+except ImportError:
+    from datetime import datetime, timedelta, timezone
+    UTC = timezone.utc
 
 from flask import (
     Blueprint,

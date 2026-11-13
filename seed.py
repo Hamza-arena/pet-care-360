@@ -1,4 +1,9 @@
+import datetime as _dt
 import os
+
+if not hasattr(_dt, 'UTC'):
+    _dt.UTC = _dt.timezone.utc
+
 from datetime import date, datetime, time, timedelta, timezone
 from app import create_app
 from app.extensions import db

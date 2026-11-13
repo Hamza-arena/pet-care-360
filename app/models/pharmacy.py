@@ -1,4 +1,8 @@
-from datetime import UTC, date, datetime
+try:
+    from datetime import UTC, date, datetime
+except ImportError:
+    from datetime import date, datetime, timezone
+    UTC = timezone.utc
 
 from app.extensions import db
 from app.models.base import SoftDeleteMixin, TenantMixin, TimestampMixin

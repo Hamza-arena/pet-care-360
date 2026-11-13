@@ -1,6 +1,10 @@
 import logging
 import time
-from datetime import UTC, date, datetime, timedelta
+try:
+    from datetime import UTC, date, datetime, timedelta
+except ImportError:
+    from datetime import date, datetime, timedelta, timezone
+    UTC = timezone.utc
 from functools import wraps
 
 from app.extensions import db

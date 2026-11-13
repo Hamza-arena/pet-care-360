@@ -1,6 +1,10 @@
 import csv
 import io
-from datetime import UTC, date, datetime
+try:
+    from datetime import UTC, date, datetime
+except ImportError:
+    from datetime import date, datetime, timezone
+    UTC = timezone.utc
 
 from flask import (
     Blueprint,

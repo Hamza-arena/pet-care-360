@@ -1,7 +1,11 @@
 import logging
 import smtplib
 from abc import ABC, abstractmethod
-from datetime import UTC, datetime
+try:
+    from datetime import UTC, datetime
+except ImportError:
+    from datetime import datetime, timezone
+    UTC = timezone.utc
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import ClassVar
