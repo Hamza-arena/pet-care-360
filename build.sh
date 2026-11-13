@@ -2,6 +2,8 @@
 # Exit on error
 set -o errexit
 
+export FLASK_APP=wsgi:app
+
 echo "Installing project dependencies..."
 pip install -r requirements.txt
 

@@ -1,5 +1,7 @@
 # Ensure shell scripts always use LF line endings on all operating systems
 *.sh text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
 *.py text
 *.md text
 *.html text

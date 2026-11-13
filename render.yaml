@@ -2,15 +2,17 @@ services:
   - type: web
     name: petcare360
     runtime: python
-    buildCommand: ./build.sh
-    startCommand: flask db upgrade && gunicorn wsgi:app
+    plan: free
+    buildCommand: bash build.sh
+    startCommand: flask db upgrade && gunicorn --bind 0.0.0.0:$PORT wsgi:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0
+      - key: FLASK_APP
+        value: wsgi:app
+      - key: FLASK_ENV
+        value: production
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
         sync: false
-      - key: FLASK_ENV
-        value: production
-
