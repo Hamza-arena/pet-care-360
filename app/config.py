@@ -56,7 +56,7 @@ class DevelopmentConfig(BaseConfig):
     DEBUG = True
     TESTING = False
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-insecure-secret-key-change-in-prod')
-    SQLALCHEMY_DATABASE_URI = normalize_db_url(os.environ.get('DATABASE_URL', 'sqlite:///petcare360_dev.db'))
+    SQLALCHEMY_DATABASE_URI = normalize_db_url(os.environ.get('DATABASE_URL', 'sqlite:///petcare360.db'))
 
 
 class TestingConfig(BaseConfig):
