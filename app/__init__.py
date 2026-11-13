@@ -43,6 +43,10 @@ def create_app(config_name=None):
         app.config['SESSION_COOKIE_SECURE'] = is_sec
         app.config['REMEMBER_COOKIE_SECURE'] = is_sec
 
+    env_ratelimit = os.environ.get('RATELIMIT_ENABLED')
+    if env_ratelimit is not None:
+        app.config['RATELIMIT_ENABLED'] = env_ratelimit.lower() in ['true', '1', 'yes']
+
     # Initialize configuration hooks
     if hasattr(config_class, 'init_app'):
         config_class.init_app(app)

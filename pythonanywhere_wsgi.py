@@ -36,6 +36,7 @@ os.environ['FLASK_ENV'] = 'production'
 os.environ['SECRET_KEY'] = 'petcare360-production-secret-key-pyanywhere'
 os.environ['SESSION_COOKIE_SECURE'] = 'false'
 os.environ['REMEMBER_COOKIE_SECURE'] = 'false'
+os.environ['RATELIMIT_ENABLED'] = 'false'
 
 # Database Configuration:
 DB_PATH = os.path.join(PROJECT_DIR, 'petcare360.db')

@@ -31,7 +31,7 @@ class BaseConfig:
     # Rate Limiting Defaults
     RATELIMIT_STORAGE_URI = os.environ.get('RATELIMIT_STORAGE_URI', 'memory://')
     RATELIMIT_STRATEGY = 'fixed-window'
-    RATELIMIT_ENABLED = True
+    RATELIMIT_ENABLED = os.environ.get('RATELIMIT_ENABLED', 'true').lower() in ['true', '1', 'yes']
 
     # Security Cookies
     SESSION_COOKIE_HTTPONLY = True
