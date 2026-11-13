@@ -4,10 +4,20 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
 
 def normalize_db_url(url: str | None) -> str | None:
-    if url and url.startswith('postgres://'):
+    if not url:
+        abs_default = os.path.join(BASE_DIR, 'petcare360.db')
+        return 'sqlite:///' + abs_default.replace(os.sep, '/')
+    if url.startswith('postgres://'):
         return url.replace('postgres://', 'postgresql://', 1)
+    if url.startswith('sqlite:///') and not url.startswith('sqlite:////') and not (len(url) > 11 and url[10] == ':'):
+        # Resolve relative SQLite URI into an absolute path based on project BASE_DIR
+        rel_path = url[len('sqlite:///'):]
+        abs_path = os.path.abspath(os.path.join(BASE_DIR, rel_path))
+        return 'sqlite:///' + abs_path.replace(os.sep, '/')
     return url
 
 
