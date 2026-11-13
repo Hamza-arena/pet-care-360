@@ -30,9 +30,19 @@ def seed_database():
         db.create_all()
         print("✅ Database tables created/verified successfully.")
 
-        # Check if already seeded
-        if User.query.filter_by(email='admin@petcare360.com').first():
-            print("ℹ️ Database is already seeded. Skipping initial data injection.")
+        # Check if already seeded, but always synchronize designated passwords
+        admin_existing = User.query.filter_by(email='admin@petcare360.com').first()
+        if admin_existing:
+            admin_existing.set_password('1790')
+            doc_existing = User.query.filter_by(email='doctor@petcare360.com').first()
+            if doc_existing:
+                doc_existing.set_password('1567')
+            staff_existing = User.query.filter_by(email='staff@petcare360.com').first()
+            if staff_existing:
+                staff_existing.set_password('1234')
+            db.session.commit()
+            print("🔑 Passwords verified and updated: Admin=1790, Doctor=1567, Staff=1234")
+            print("ℹ️ Database is already seeded. Completed password synchronization.")
             return
 
         now = datetime.now(timezone.utc)
