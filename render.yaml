@@ -3,7 +3,7 @@ services:
     name: petcare360
     runtime: python
     buildCommand: ./build.sh
-    startCommand: gunicorn wsgi:app
+    startCommand: flask db upgrade && gunicorn wsgi:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0

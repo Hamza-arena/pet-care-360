@@ -1,0 +1,7 @@
+# Ensure shell scripts always use LF line endings on all operating systems
+*.sh text eol=lf
+*.py text
+*.md text
+*.html text
+*.css text
+*.js text
