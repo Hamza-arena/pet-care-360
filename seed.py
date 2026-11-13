@@ -30,7 +30,7 @@ def seed_database():
         db.create_all()
         print("✅ Database tables created/verified successfully.")
 
-        # Check if already seeded, but always synchronize designated passwords
+        # Check if already seeded, but always synchronize designated passwords and ensure personas
         admin_existing = User.query.filter_by(email='admin@petcare360.com').first()
         if admin_existing:
             admin_existing.set_password('1790')
@@ -40,8 +40,30 @@ def seed_database():
             staff_existing = User.query.filter_by(email='staff@petcare360.com').first()
             if staff_existing:
                 staff_existing.set_password('1234')
+            client_existing = User.query.filter_by(email='user@petcare360.com').first()
+            if client_existing:
+                client_existing.set_password('user123')
+            else:
+                user_role = Role.query.filter_by(name='User').first()
+                if not user_role:
+                    user_role = Role(name='User', description='Pet Owner / Client account')
+                    db.session.add(user_role)
+                    db.session.flush()
+                new_client = User(
+                    email='user@petcare360.com',
+                    username='pet_owner',
+                    first_name='Hamza',
+                    last_name='Owner',
+                    phone='+92 300 0000005',
+                    is_active=True
+                )
+                new_client.set_password('user123')
+                db.session.add(new_client)
+                db.session.flush()
+                db.session.add(UserRole(user_id=new_client.id, role_id=user_role.id))
+
             db.session.commit()
-            print("🔑 Passwords verified and updated: Admin=1790, Doctor=1567, Staff=1234")
+            print("🔑 Passwords verified and updated: Admin=1790, Doctor=1567, Staff=1234, User=user123")
             print("ℹ️ Database is already seeded. Completed password synchronization.")
             return
 

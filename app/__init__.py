@@ -30,6 +30,19 @@ def create_app(config_name=None):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    # Dynamic overrides from environment variables (unless in testing mode)
+    if not app.config.get('TESTING'):
+        env_db = os.environ.get('DATABASE_URL')
+        if env_db:
+            from app.config import normalize_db_url
+            app.config['SQLALCHEMY_DATABASE_URI'] = normalize_db_url(env_db)
+
+    env_cookie_sec = os.environ.get('SESSION_COOKIE_SECURE')
+    if env_cookie_sec is not None:
+        is_sec = env_cookie_sec.lower() in ['true', '1', 'yes']
+        app.config['SESSION_COOKIE_SECURE'] = is_sec
+        app.config['REMEMBER_COOKIE_SECURE'] = is_sec
+
     # Initialize configuration hooks
     if hasattr(config_class, 'init_app'):
         config_class.init_app(app)
